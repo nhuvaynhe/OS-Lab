@@ -59,6 +59,7 @@ int main(int argc, char * argv[]) {
   *   Assign task to the first
   *   free worker.
   */
+
   workerID[1] = bkwrk_get_worker();
   ret = bktask_assign_worker(taskID[0], workerID[1]);  
   if (ret != 0)
@@ -68,18 +69,16 @@ int main(int argc, char * argv[]) {
 
 #ifdef SHARED_MEMORY
   fill_shared_memory_data("Parent", workerID[1]);
-  //detach_shared_memory("Parent", wrk_ptr);
 #endif 
   
   /* Wake up the worker */
-  printf("Parent    -> Start dispatching with pid: %d\n", wrkid_tid[workerID[1]]);
+  // printf("Parent    -> Start dispatching with pid: %d\n", wrkid_tid[workerID[1]]);
   bkwrk_dispatch_worker(workerID[1]);
   
   /* Wait for the worker done its work */
-  //while(worker[workerID[1]].func != NULL);
   while(wrk_ptr->func != NULL);
   wrkid_busy[workerID[1]] = 0;
-  printf("Parent    -> Done work, worker id %d is FREE\n", workerID[1]);
+  // printf("Parent    -> Done work, worker id %d is FREE\n", workerID[1]);
 
   /*
   *   Create another 2 workers which
@@ -99,18 +98,26 @@ int main(int argc, char * argv[]) {
 
 #ifdef SHARED_MEMORY
   fill_shared_memory_data("Parent", workerID[0]);
+  fill_shared_memory_data("Parent", workerID[2]);
   //detach_shared_memory("Parent", wrk_ptr);
 #endif 
 
-  printf("Parent    -> Start dispatching with pid: %d\n", wrkid_tid[workerID[0]]);
+  // printf("Parent    -> Start dispatching with pid: %d\n", wrkid_tid[workerID[0]]);
+  // printf("Parent    -> Start dispatching with pid: %d\n", wrkid_tid[workerID[2]]);
   bkwrk_dispatch_worker(workerID[0]);
-  while(wrk_ptr->func != NULL);
-  wrkid_busy[workerID[1]] = 0;
-  printf("Parent    -> Done work, worker id %d is FREE\n", workerID[1]);
   bkwrk_dispatch_worker(workerID[2]);
+  while(wrk_ptr->func != NULL);
+  wrkid_busy[workerID[0]] = 0;
+  wrkid_busy[workerID[2]] = 0;
+  // printf("Parent    -> Done work, worker id %d is FREE\n", workerID[0]);
+  // printf("Parent    -> Done work, worker id %d is FREE\n", workerID[2]);
 
   fflush(stdout);
   sleep(1);
+  
+#ifdef SHARED_MEMORY
+  detach_shared_memory("Parent", wrk_ptr);
+#endif
 
 #ifdef STRESS_TEST
   int i = 0;

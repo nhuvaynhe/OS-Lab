@@ -4,7 +4,7 @@
 void create_shared_memory(char* process)
 {
   /* Apply shared memory for each process to update value */
-  ShmID = shmget(IPC_PRIVATE, sizeof(wrk_ptr), IPC_CREAT | 0664);
+  ShmID = shmget(IPC_PRIVATE, sizeof(wrk_ptr) * MAX_WORKER, IPC_CREAT | 0664);
   if (ShmID < 0) {
     printf("shmget\n");
     exit(1);
@@ -26,11 +26,11 @@ void attach_shared_memory(char* process)
 
 void fill_shared_memory_data(char* process, int wrkid)
 { 
-  wrk_ptr->bktaskid = worker[wrkid].bktaskid;
-  wrk_ptr->func = worker[wrkid].func;
-  wrk_ptr->arg = worker[wrkid].arg;
+  wrk_ptr[wrkid].bktaskid = worker[wrkid].bktaskid;
+  wrk_ptr[wrkid].func = worker[wrkid].func;
+  wrk_ptr[wrkid].arg = worker[wrkid].arg;
   
-  printf("%s    -> Fill shared memory data with arg %d\n", process, *(int *)wrk_ptr->arg);
+  printf("%s    -> Fill shared memory data with arg %d\n", process, *(int *)wrk_ptr[wrkid].arg);
 }
 
 void detach_shared_memory(char* process, struct bkworker_t* shmPTR)

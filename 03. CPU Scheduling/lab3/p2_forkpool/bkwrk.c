@@ -38,9 +38,9 @@ void * bkwrk_worker(void * arg) {
       continue;
 
 #ifdef SHARED_MEMORY
-    wrk->bktaskid = wrk_ptr->bktaskid;
-    wrk->func = wrk_ptr->func;
-    wrk->arg = wrk_ptr->arg;
+    wrk->bktaskid = wrk_ptr[i].bktaskid;
+    wrk->func = wrk_ptr[i].func;
+    wrk->arg = wrk_ptr[i].arg;
     printf("Child     -> worker id %d ready with task id %u with arg %d\n", 
           wrk->wrkid, wrk->bktaskid, *(int *)wrk->arg);
 #endif
@@ -58,9 +58,9 @@ void * bkwrk_worker(void * arg) {
       printf("Child     -> NO TASK\n");
       
     /* Advertise I DONE WORKING */
-    worker[i].func = wrk_ptr->func;
-    worker[i].arg = wrk_ptr->arg;
-    worker[i].bktaskid = wrk_ptr->bktaskid;
+    worker[i].func = wrk_ptr[i].func;
+    worker[i].arg = wrk_ptr[i].arg;
+    worker[i].bktaskid = wrk_ptr[i].bktaskid;
 
   }
 }
