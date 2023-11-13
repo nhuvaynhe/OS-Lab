@@ -1,0 +1,10 @@
+{
+    "files.associations": {
+        "chrono": "c",
+        "random": "c",
+        "limits": "c",
+        "semaphore": "c",
+        "forkjoin.h": "c",
+        "complex": "c"
+    }
+}

@@ -1,0 +1,13 @@
+{
+    "files.associations": {
+        "pthread.h": "c",
+        "list": "c",
+        "stdbool.h": "c",
+        "sched.h": "c",
+        "stdio.h": "c",
+        "forkjoin.h": "c",
+        "syscall.h": "c",
+        "unistd.h": "c",
+        "signal.h": "c"
+    }
+}

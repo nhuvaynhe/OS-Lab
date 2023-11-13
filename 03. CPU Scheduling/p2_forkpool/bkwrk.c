@@ -9,8 +9,8 @@
 
 //#define DEBUG
 #define INFO
-#define SHARED_MEMORY
-//#define WORK_THREAD
+//#define SHARED_MEMORY
+#define WORK_THREAD
 
 void * bkwrk_worker(void * arg) {
   sigset_t set;
