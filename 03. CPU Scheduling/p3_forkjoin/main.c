@@ -30,7 +30,7 @@ int main(int argc, char * argv[]) {
 		return -1;
 
 	int minSum = 0;
-	int maxSum = 1e6;
+	int maxSum = 1e9;
 	arg[0] = minSum;		
 	arg[1] = maxSum;		
 	tsk_init( & tskID[0], & func, (void * ) & arg);

@@ -51,7 +51,7 @@ void * bkwrk_worker(void * arg) {
     /* Busy running */
     if (wrk -> func != NULL)
     {  
-      printf("\nChild     -> DO TASK...\n");
+      printf("Child     -> DO TASK...\n");
       wrk -> func(wrk -> arg);
     }
     else

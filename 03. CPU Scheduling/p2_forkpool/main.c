@@ -6,7 +6,7 @@
 
 #undef STRESS_TEST
 #define SHARED_MEMORY
-#define DEBUG
+#undef DEBUG
 
 int func(void * arg) {
   int processID = * ((int * ) arg);
@@ -72,19 +72,20 @@ int main(int argc, char * argv[]) {
 #endif 
   
   /* Wake up the worker */
-  // printf("Parent    -> Start dispatching with pid: %d\n", wrkid_tid[workerID[1]]);
+#ifdef DEBUG
+  printf("Parent    -> Start dispatching with pid: %d\n", wrkid_tid[workerID[1]]);
+#endif
   bkwrk_dispatch_worker(workerID[1]);
   
   /* Wait for the worker done its work */
   while(wrk_ptr->func != NULL);
   wrkid_busy[workerID[1]] = 0;
-  // printf("Parent    -> Done work, worker id %d is FREE\n", workerID[1]);
 
   /*
   *   Create another 2 workers which
   *   do the tasks asynchronously
   */
-  printf("\nParent    -> Continue with tsk 1 and 2...\n");
+  printf("Parent    -> Continue with tsk 1 and 2...\n\n");
 
   workerID[0] = bkwrk_get_worker();
   ret = bktask_assign_worker(taskID[1], workerID[0]);
@@ -102,15 +103,23 @@ int main(int argc, char * argv[]) {
   //detach_shared_memory("Parent", wrk_ptr);
 #endif 
 
-  // printf("Parent    -> Start dispatching with pid: %d\n", wrkid_tid[workerID[0]]);
-  // printf("Parent    -> Start dispatching with pid: %d\n", wrkid_tid[workerID[2]]);
+#ifdef DEBUG
+  printf("Parent    -> Start dispatching with pid: %d\n", wrkid_tid[workerID[0]]);
+  printf("Parent    -> Start dispatching with pid: %d\n", wrkid_tid[workerID[2]]);
+#endif 
+
   bkwrk_dispatch_worker(workerID[0]);
   bkwrk_dispatch_worker(workerID[2]);
+  
+  /* Wait for the worker done its work */
   while(wrk_ptr->func != NULL);
   wrkid_busy[workerID[0]] = 0;
   wrkid_busy[workerID[2]] = 0;
-  // printf("Parent    -> Done work, worker id %d is FREE\n", workerID[0]);
-  // printf("Parent    -> Done work, worker id %d is FREE\n", workerID[2]);
+
+#ifdef DEBUG
+  printf("Parent    -> Done work, worker id %d is FREE\n", workerID[0]);
+  printf("Parent    -> Done work, worker id %d is FREE\n", workerID[2]);
+#endif
 
   fflush(stdout);
   sleep(1);

@@ -11,7 +11,7 @@
 #define MAX_WORKER 10
 #define WRK_THREAD 1
 #define STACK_SIZE 4096
-#define THRESHOLD 125e3
+#define THRESHOLD 125e6
 #define SIG_DISPATCH SIGUSR1
 
 typedef enum {

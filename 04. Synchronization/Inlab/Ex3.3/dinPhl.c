@@ -50,10 +50,12 @@ void *philosopher(void *num)
 
     // Ensure that all 5 philosophers have entered the room
     if (philosopher_count == N) {
-        EATING = 1;
+        EATING = 1; 
+        // Unblock all threads blocked by "enter"
         pthread_cond_broadcast(&enter);
     } else {
         while(!EATING)
+            // Waiting and unblock the mutex for another philosophers to enter the room
             pthread_cond_wait(&enter, &mtx);
     }
 
