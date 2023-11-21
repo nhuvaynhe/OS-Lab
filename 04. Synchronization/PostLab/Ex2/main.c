@@ -50,13 +50,17 @@ void* sum_worker(struct _range* idx_range) {
    pthread_mutex_lock(&mtx);
 
    int i;
-   printf("In worker from %d to %d\n", idx_range->start, idx_range->end);
+   long sum;
 
    // TODO: implement multi-thread sum-worker
-   for(i = idx_range->start; )
+   for(i = idx_range->start; i <= idx_range->end; i++) {
+      sum += shrdarrbuf[i];
+   }
 
+   printf("In worker from %d to %d with sum %ld\n", idx_range->start, idx_range->end, sum);
    pthread_mutex_unlock(&mtx);
-   return 0;
+   
+   pthread_exit((void *) sum);
 }
 
 int main(int argc, char * argv[]) {
@@ -65,6 +69,8 @@ int main(int argc, char * argv[]) {
    struct _range* thread_idx_range;
    pthread_t* tid;
    int pid;
+   void *returnValue;
+
 
     if (argc < 3 || argc > 4) /* only accept 2 or 3 arguments */
       help(EXIT_SUCCESS);
@@ -127,8 +133,10 @@ int main(int argc, char * argv[]) {
    for (i=0; i < appconf.tnum; i++)
       pthread_create(&tid[i], NULL, sum_worker, (
                      struct _range *) (&thread_idx_range[i]));
-   for (i=0; i < appconf.tnum; i++)
-      pthread_join(tid[i], NULL);
+   for (i=0; i < appconf.tnum; i++) {
+      pthread_join(tid[i], &returnValue);
+      sumbuf += (long)returnValue;
+   }
    fflush(stdout);
 	
    printf("%s gives sum result %ld\n", PACKAGE, sumbuf);
