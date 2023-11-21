@@ -16,13 +16,13 @@ void* writer(void *arg)
     {
         pthread_seqlock_wrlock(&lock);
         printf("\n-------> IN WRITE <-------\n");
-        usleep(5000); // 1 millisecond delay
+        usleep(5000); 
 
         sum += i;
         printf("INFO: New sum %ld\n\n", sum);
                       
         pthread_seqlock_wrunlock(&lock);
-        usleep(5000); // 1 millisecond delay
+        usleep(5000); 
     }
 
     inProcess = false;
@@ -40,7 +40,7 @@ void* reader(void *arg)
         printf("Thread ID %d read sum equal %ld\n", tid, sum);
 
         pthread_seqlock_rdunlock(&lock);
-        usleep(5000 + tid * 1000); // 1 millisecond delay
+        usleep(5000 + tid * 1000); 
     }
 
     return NULL;

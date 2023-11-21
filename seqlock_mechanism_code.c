@@ -3,7 +3,7 @@
 #undef READCOUNT
 
 /* seqlock init*/
-int pthread_seqlock_init(pthread_seqlock_t *seqlock) 
+static inline void pthread_seqlock_init(pthread_seqlock_t *seqlock)
 {
     int ret; 
     seqlock->seq_counter = 0; 
@@ -14,12 +14,10 @@ int pthread_seqlock_init(pthread_seqlock_t *seqlock)
        printf("pthread_spin_init");
        exit(1);
     }
-
-    return 0;
 }
 
 /* seqlock destroy*/
-int pthread_seqlock_destroy(pthread_seqlock_t *seqlock)
+static inline void pthread_seqlock_destroy(pthread_seqlock_t *seqlock)
 {
     int ret; 
     seqlock->seq_counter = 0; 
@@ -30,8 +28,6 @@ int pthread_seqlock_destroy(pthread_seqlock_t *seqlock)
     }
 
     printf("INFO: seqlock destroyed\n");
-
-    return 0;
 }
 
 /* check whether writer active or not */
@@ -41,7 +37,7 @@ bool isWriting(pthread_seqlock_t *seqlock)
 }
 
 /* writer lock */
-int pthread_seqlock_wrlock(pthread_seqlock_t *seqlock) 
+static inline void pthread_seqlock_wrlock(pthread_seqlock_t *seqlock)
 {
     if(isWriting(seqlock)){
         printf("WARNING: Waiting for another writer\n");
@@ -56,27 +52,22 @@ int pthread_seqlock_wrlock(pthread_seqlock_t *seqlock)
         // Allow writer to proceed without waiting
         printf("INFO: Writer acquired lock with one reader\n");
         seqlock->seq_counter++;
-        return 0;
     }
 #endif
 
     pthread_spin_lock(&seqlock->spin_lock);
     seqlock->seq_counter++;
-
-    return 0;
 }
 
 /* writer unlock */
-int pthread_seqlock_wrunlock(pthread_seqlock_t *seqlock) 
+static inline void pthread_seqlock_wrunlock(pthread_seqlock_t *seqlock)
 {
     seqlock->seq_counter--;
     pthread_spin_unlock(&seqlock->spin_lock);
-
-    return 0;
 }
 
 /* reader lock */
-int pthread_seqlock_rdlock(pthread_seqlock_t *seqlock)
+static inline unsigned pthread_seqlock_rdlock(pthread_seqlock_t *seqlock)
 {
     if(isWriting(seqlock)){
         printf("WARNING: Waiting for writing \n");
@@ -89,7 +80,7 @@ int pthread_seqlock_rdlock(pthread_seqlock_t *seqlock)
 }
 
 /* reader unlock */
-int pthread_seqlock_rdunlock(pthread_seqlock_t *seqlock)
+static inline unsigned pthread_seqlock_rdunlock(pthread_seqlock_t *seqlock)
 {
     if(isWriting(seqlock)) {
         printf("WARNING: Data is changing, read again \n");
