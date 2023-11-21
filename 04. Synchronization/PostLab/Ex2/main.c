@@ -54,13 +54,13 @@ void* sum_worker(struct _range* idx_range) {
 
    // TODO: implement multi-thread sum-worker
    for(i = idx_range->start; i <= idx_range->end; i++) {
-      sum += shrdarrbuf[i];
+      sumbuf += shrdarrbuf[i];
    }
 
-   printf("In worker from %d to %d with sum %ld\n", idx_range->start, idx_range->end, sum);
+   printf("In worker from %d to %d with sum %ld\n", idx_range->start, idx_range->end, sumbuf);
    pthread_mutex_unlock(&mtx);
-   
-   pthread_exit((void *) sum);
+
+   return 0;   
 }
 
 int main(int argc, char * argv[]) {
@@ -134,8 +134,8 @@ int main(int argc, char * argv[]) {
       pthread_create(&tid[i], NULL, sum_worker, (
                      struct _range *) (&thread_idx_range[i]));
    for (i=0; i < appconf.tnum; i++) {
-      pthread_join(tid[i], &returnValue);
-      sumbuf += (long)returnValue;
+      pthread_join(tid[i], NULL);
+      //sumbuf += (long)returnValue;
    }
    fflush(stdout);
 	

@@ -7,7 +7,7 @@
 
 #define MAX_LOG_LENGTH 10
 #define MAX_BUFFER_SLOT 6
-#define MAX_LOOPS 30
+#define MAX_LOOPS 33
 
 /* init the semaphore for synchronization */
 sem_t mutex, empty, full;
@@ -15,6 +15,7 @@ sem_t mutex, empty, full;
 /* create logbuf with slot and length defined */
 char logbuf[MAX_BUFFER_SLOT][MAX_LOG_LENGTH];
 int count;
+int seed = 0;
 
 /* flush all the log to the screen */
 void semaphore_init();
@@ -31,6 +32,7 @@ void *wrlog(void *data)
 {
     sem_wait(&empty);
     sem_wait(&mutex);
+    ++seed;
     char str[MAX_LOG_LENGTH];
     int id = *(int*) data;
 
@@ -38,11 +40,11 @@ void *wrlog(void *data)
     sprintf(str, "%d", id);
     strcpy(logbuf[count], str);
     count = (count > MAX_BUFFER_SLOT)? count :(count + 1); /* Only increase count to size MAX_BUFFER_SLOT*/
-    //printf("wrlog(): %d \n", id);
+    printf("wrlog(): %d \n", id);
 
     sem_post(&mutex);
-    if(count == MAX_BUFFER_SLOT)
-        sem_post(&full);
+    if(count == MAX_BUFFER_SLOT) { sem_post(&full); }
+    if(seed == MAX_LOOPS) { sem_post(&full); }
 
     return 0;
 }
