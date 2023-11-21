@@ -2,10 +2,11 @@
 #include <stdlib.h>
 #include <semaphore.h>
 #include <pthread.h>
+#include <stdbool.h>
 
-#define MAX_ITEMS 1
+#define MAX_ITEMS 2
 #define THREADS 1 // 1 producer and 1 consumer
-#define LOOPS 100 // variable
+#define LOOPS 3 * MAX_ITEMS // variable
 
 // Init shared buffer
 int buffer[MAX_ITEMS];
@@ -15,7 +16,6 @@ int use = 0;
 // Init for semaphore
 sem_t mutex, full, empty;
 
-/* TODO: Fill in the synchronization stuff */
 void put(int value); // put data into buffer 
 int get(); // get data from buffer
 
@@ -23,11 +23,9 @@ void *producer(void *arg) {
     int i;
     int tid = (int) arg;
     for (i = 0; i < LOOPS; i++) {
-        /* TODO: Fill in the synchronization stuff */
-        put(i); // ine P2
+        put(i);
         printf("Producer %d put data %d\n", tid, i);
         sleep(1);
-        /* TODO: Fill in the synchronization stff */
     }
 
     pthread_exit(NULL);
@@ -40,14 +38,13 @@ void *consumer(void *arg) {
         sem_wait(&full);
         sem_wait(&mutex);
 
-        /* TODO: FIll in the synchronization stuff */
-        tmp = get(); // line C2
+        tmp = get(); 
         printf("Consumer %d get data %d\n", tid, tmp);
-        sleep(1);
 
         sem_post(&mutex);
         sem_post(&empty);
-        /* TODO: Fill in the synchronization stuff */
+
+        sleep(3);
     }
 
     pthread_exit(NULL);
@@ -71,11 +68,9 @@ int main(int argc, char **argv) {
         perror("sem empty init");
         exit(1);
     }
-    
-    /* TODO: Fill in the synchronization stuff */
 
     for (i = 0; i < THREADS; i++) {
-        tid[i] = 1;
+        tid[i] = i;
         // Create producer thread 
         pthread_create(&producers[i], NULL, producer, (void *) tid[i]);
         pthread_create(&consumers[i], NULL, consumer, (void *) tid[i]);
@@ -85,8 +80,6 @@ int main(int argc, char **argv) {
         pthread_join(producers[i], NULL);
         pthread_join(consumers[i], NULL);
     }
-
-    /* TODO: Fill in the synchronization stuff */
 
     return 0;
 }
@@ -99,11 +92,12 @@ void put(int value) {
     fill = (fill + 1) % MAX_ITEMS; // line f2
 
     sem_post(&mutex);
-    sem_post(&full);
+    sem_post(&full); 
 }
 
 int get() {
     int tmp = buffer[use]; // line g1
+    buffer[use] = -1;
     use = (use + 1) % MAX_ITEMS; // line g2
     return tmp;
 }
