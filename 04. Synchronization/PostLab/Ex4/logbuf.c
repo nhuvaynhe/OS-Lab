@@ -1,94 +1,135 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <pthread.h>
 #include <unistd.h>
 #include <string.h>
+#include <semaphore.h>
 
 #define MAX_LOG_LENGTH 10
 #define MAX_BUFFER_SLOT 6
 #define MAX_LOOPS 30
 
-char logbuf[MAX_BUFFER_SLOT][MAX_LOG_LENGTH];
+/* init the semaphore for synchronization */
+sem_t mutex, empty, full;
 
+/* create logbuf with slot and length defined */
+char logbuf[MAX_BUFFER_SLOT][MAX_LOG_LENGTH];
 int count;
+
+/* flush all the log to the screen */
+void semaphore_init();
 void flushlog();
 
+/* timer arguments for flushlog() */
 struct _args
 {
-   unsigned int interval;
+    unsigned int interval;
 };
 
+/* write into log */
 void *wrlog(void *data)
 {
-   char str[MAX_LOG_LENGTH];
-   int id = *(int*) data;
+    sem_wait(&empty);
+    sem_wait(&mutex);
+    char str[MAX_LOG_LENGTH];
+    int id = *(int*) data;
 
-   usleep(20);
-   sprintf(str, "%d", id);
-   strcpy(logbuf[count], str);
-   count = (count > MAX_BUFFER_SLOT)? count :(count + 1); /* Only increase count to size MAX_BUFFER_SLOT*/
-   printf("wrlog(): %d \n", id);
+    usleep(20);
+    sprintf(str, "%d", id);
+    strcpy(logbuf[count], str);
+    count = (count > MAX_BUFFER_SLOT)? count :(count + 1); /* Only increase count to size MAX_BUFFER_SLOT*/
+    //printf("wrlog(): %d \n", id);
 
-   return 0;
+    sem_post(&mutex);
+    if(count == MAX_BUFFER_SLOT)
+        sem_post(&full);
+
+    return 0;
 }
 
+/* flush data from log */
 void flushlog()
 {
-   int i;
-   char nullval[MAX_LOG_LENGTH];
+    sem_wait(&full);
+    sem_wait(&mutex);
+    int i;
+    char nullval[MAX_LOG_LENGTH];
 
-   printf("flushlog()\n");
-   sprintf(nullval, "%d", -1);
-   for (i = 0; i < count; i++)
-   {
-      printf("Slot  %i: %s\n", i, logbuf[i]);
-      strcpy(logbuf[i], nullval);
-   }
+    //printf("flushlog()\n");
+    sprintf(nullval, "%d", -1);
+    for (i = 0; i < count; i++)
+    {
+        printf("Slot  %i: %s\n", i, logbuf[i]);
+        strcpy(logbuf[i], nullval);
 
-   fflush(stdout);
+        sem_post(&empty);
+    }
 
-   /*Reset buffer */
-   count = 0;
+    fflush(stdout);
 
-   return;
+    /*Reset buffer */
+    count = 0;
 
+    sem_post(&mutex);
+
+    return;
 }
 
+/* timer for flush log */
 void *timer_start(void *args)
 {
-   while (1)
-   {
-      flushlog();
-      /*Waiting until the next timeout */
-      usleep(((struct _args *) args)->interval);
-   }
+    while (1)
+    {
+        flushlog();
+        /*Waiting until the next timeout */
+        usleep(((struct _args *) args)->interval);
+    }
 }
 
 int main()
 {
-   int i;
-   count = 0;
-   pthread_t tid[MAX_LOOPS];
-   pthread_t lgrid;
-   int id[MAX_LOOPS];
+    int i;
+    count = 0;
 
-   struct _args args;
-   args.interval = 500e3;
-   /*500 msec ~ 500 * 1000 usec */
+    pthread_t tid[MAX_LOOPS];
+    pthread_t lgrid;
+    int id[MAX_LOOPS];
 
-   /*Setup periodically invoke flushlog() */
-   pthread_create(&lgrid, NULL, &timer_start, (void*) &args);
+    struct _args args;
+    args.interval = 500e3;
+    /*500 msec ~ 500 * 1000 usec */
 
-   /*Asynchronous invoke task writelog */
-   for (i = 0; i < MAX_LOOPS; i++)
-   {
-      id[i] = i;
-      pthread_create(&tid[i], NULL, wrlog, (void*) &id[i]);
-   }
+    semaphore_init();
 
-   for (i = 0; i < MAX_LOOPS; i++)
-      pthread_join(tid[i], NULL);
+    /*Setup periodically invoke flushlog() */
+    pthread_create(&lgrid, NULL, &timer_start, (void*) &args);
 
-   sleep(5);
+    /*Asynchronous invoke task writelog */
+    for (i = 0; i < MAX_LOOPS; i++)
+    {
+        id[i] = i;
+        pthread_create(&tid[i], NULL, wrlog, (void*) &id[i]);
+    }
 
-   return 0;
+    for (i = 0; i < MAX_LOOPS; i++)
+        pthread_join(tid[i], NULL);
+
+    sleep(5);
+    return 0;
+}
+
+void semaphore_init()
+{
+    if(sem_init(&mutex, 0, 1) == -1) {
+        perror("sem mutex init");
+        exit(1);
+    }
+    if(sem_init(&full, 0, 0) == -1) {
+        perror("sem full init");
+        exit(1);
+    }
+    if(sem_init(&empty, 0, MAX_BUFFER_SLOT) == -1) {
+        perror("sem empty init");
+        exit(1);
+    }
 }
