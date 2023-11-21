@@ -47,14 +47,16 @@ int* shrdarrbuf;
 pthread_mutex_t mtx;
 
 void* sum_worker(struct _range* idx_range) {
-   int i;
-   
-   //printf("In worker from %d to %d\n", idx_range.start, idx_range.end);
-   
-   // TODO: implement multi-thread sum-worker
+   pthread_mutex_lock(&mtx);
 
+   int i;
+   printf("In worker from %d to %d\n", idx_range->start, idx_range->end);
+
+   // TODO: implement multi-thread sum-worker
+   for(i = idx_range->start; )
+
+   pthread_mutex_unlock(&mtx);
    return 0;
-		
 }
 
 int main(int argc, char * argv[]) {

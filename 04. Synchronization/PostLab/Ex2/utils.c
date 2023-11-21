@@ -28,8 +28,8 @@ int validate_and_split_argarray(int arraysize, int num_thread,
    n = (arraysize + num_thread - 1) / num_thread;    /* elements per group */
 	
    for (i = 0; i < num_thread; i++) {
-       thread_idx_range[i].start = i*n;
-	   thread_idx_range[i].end = ((i + 1)*n - 1 < arraysize) ? (i + 1)*n - 1 : arraysize - 1;
+      thread_idx_range[i].start = i*n;
+	    thread_idx_range[i].end = ((i + 1)*n - 1 < arraysize) ? (i + 1)*n - 1 : arraysize - 1;
    }
 
    fprintf(stderr,"\n");
@@ -55,7 +55,7 @@ int generate_array_data(int* buf, int arraysize, int seednum) {
    fprintf(stderr,"\n[");
    fflush(stderr);
    for (i = 0; i < arraysize; i++) {
-       fprintf(stderr,"%3d, \t",buf[i]);
+        fprintf(stderr,"%3d, \t",buf[i]);
    }
    fflush(stderr);
    fprintf(stderr,"]\n");	

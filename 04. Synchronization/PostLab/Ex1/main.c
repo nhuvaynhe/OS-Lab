@@ -16,13 +16,13 @@ void* writer(void *arg)
     {
         pthread_seqlock_wrlock(&lock);
         printf("\n-------> IN WRITE <-------\n");
-        usleep(5000); 
+        usleep(1000); 
 
         sum += i;
         printf("INFO: New sum %ld\n\n", sum);
                       
         pthread_seqlock_wrunlock(&lock);
-        usleep(5000); 
+        usleep(5000);
     }
 
     inProcess = false;
@@ -40,7 +40,7 @@ void* reader(void *arg)
         printf("Thread ID %d read sum equal %ld\n", tid, sum);
 
         pthread_seqlock_rdunlock(&lock);
-        usleep(5000 + tid * 1000); 
+        usleep(500 + tid * 100); 
     }
 
     return NULL;
@@ -52,10 +52,11 @@ int main()
 
     int MAX = 100;
 
+    pthread_create(&writer_t, NULL, &writer, &MAX);
+
     for(int i = 0; i < 5; i++)
         pthread_create(&reader_t[i], NULL, &reader, &i);
     
-    pthread_create(&writer_t, NULL, &writer, &MAX);
     /* Wait for the writer finish */
     pthread_join(writer_t, NULL);
 
