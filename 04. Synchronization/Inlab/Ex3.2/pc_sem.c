@@ -3,6 +3,7 @@
 #include <semaphore.h>
 #include <pthread.h>
 #include <stdbool.h>
+#include <unistd.h>
 
 #define MAX_ITEMS 2
 #define THREADS 1 // 1 producer and 1 consumer
@@ -18,12 +19,21 @@ sem_t mutex, full, empty;
 
 void put(int value); // put data into buffer 
 int get(); // get data from buffer
+void semaphore_init();
+void semaphore_destroy();
 
 void *producer(void *arg) {
     int i;
-    int tid = (int) arg;
+    int tid = *(int*) arg;
     for (i = 0; i < LOOPS; i++) {
+        sem_wait(&empty);
+        sem_wait(&mutex);
+
         put(i);
+
+        sem_post(&mutex);
+        sem_post(&full); 
+
         printf("Producer %d put data %d\n", tid, i);
         sleep(1);
     }
@@ -33,7 +43,7 @@ void *producer(void *arg) {
 
 void *consumer(void *arg) {
     int i, tmp = 0;
-    int tid = (int) arg;
+    int tid = *(int*) arg;
     while (tmp != -1) {
         sem_wait(&full);
         sem_wait(&mutex);
@@ -41,10 +51,10 @@ void *consumer(void *arg) {
         tmp = get(); 
         printf("Consumer %d get data %d\n", tid, tmp);
 
-        sem_post(&mutex);
         sem_post(&empty);
+        sem_post(&mutex);
 
-        sleep(3);
+        sleep(2);
     }
 
     pthread_exit(NULL);
@@ -56,6 +66,39 @@ int main(int argc, char **argv) {
     pthread_t producers[THREADS];
     pthread_t consumers[THREADS];
 
+    semaphore_init();
+
+    for (i = 0; i < THREADS; i++) {
+        tid[i] = i;
+        // Create producer thread 
+        pthread_create(&producers[i], NULL, producer, &tid[i]);
+        pthread_create(&consumers[i], NULL, consumer, &tid[i]);
+    }
+
+    for (i = 0; i < THREADS; i++) {
+        pthread_join(producers[i], NULL);
+        pthread_join(consumers[i], NULL);
+    }
+
+    semaphore_destroy();
+
+    return 0;
+}
+
+void put(int value) {
+    buffer[fill] = value; // line f1
+    fill = (fill + 1) % MAX_ITEMS; // line f2
+}
+
+int get() {
+    int tmp = buffer[use]; // line g1
+    buffer[use] = -1;
+    use = (use + 1) % MAX_ITEMS; // line g2
+    return tmp;
+}
+
+void semaphore_init()
+{
     if(sem_init(&mutex, 0, 1) == -1) {
         perror("sem mutex init");
         exit(1);
@@ -68,38 +111,22 @@ int main(int argc, char **argv) {
         perror("sem empty init");
         exit(1);
     }
-
-    for (i = 0; i < THREADS; i++) {
-        tid[i] = i;
-        // Create producer thread 
-        pthread_create(&producers[i], NULL, producer, (void *) tid[i]);
-        pthread_create(&consumers[i], NULL, consumer, (void *) tid[i]);
-    }
-
-    for (i = 0; i < THREADS; i++) {
-        pthread_join(producers[i], NULL);
-        pthread_join(consumers[i], NULL);
-    }
-
-    return 0;
 }
 
-void put(int value) {
-    sem_wait(&empty);
-    sem_wait(&mutex);
+void semaphore_destroy()
+{
+  if (sem_destroy(&mutex) == -1) {
+    perror("sem mutex destroy");
+    exit(1);
+  }
 
-    buffer[fill] = value; // line f1
-    fill = (fill + 1) % MAX_ITEMS; // line f2
+  if (sem_destroy(&full) == -1) {
+    perror("sem full destroy");
+    exit(1);
+  }
 
-    sem_post(&mutex);
-    sem_post(&full); 
+  if (sem_destroy(&empty) == -1) {
+    perror("sem empty destroy");
+    exit(1);
+  }
 }
-
-int get() {
-    int tmp = buffer[use]; // line g1
-    buffer[use] = -1;
-    use = (use + 1) % MAX_ITEMS; // line g2
-    return tmp;
-}
-
-

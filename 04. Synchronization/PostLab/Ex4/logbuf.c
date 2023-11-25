@@ -7,7 +7,7 @@
 
 #define MAX_LOG_LENGTH 10
 #define MAX_BUFFER_SLOT 6
-#define MAX_LOOPS 33
+#define MAX_LOOPS 30
 
 /* init the semaphore for synchronization */
 sem_t mutex, empty, full;
@@ -15,10 +15,13 @@ sem_t mutex, empty, full;
 /* create logbuf with slot and length defined */
 char logbuf[MAX_BUFFER_SLOT][MAX_LOG_LENGTH];
 int count;
+
+/* for the condition buffer is not full but no data left */
 int seed = 0;
 
 /* flush all the log to the screen */
 void semaphore_init();
+void semaphore_destroy();
 void flushlog();
 
 /* timer arguments for flushlog() */
@@ -30,21 +33,20 @@ struct _args
 /* write into log */
 void *wrlog(void *data)
 {
-    sem_wait(&empty);
-    sem_wait(&mutex);
-    ++seed;
     char str[MAX_LOG_LENGTH];
     int id = *(int*) data;
 
     usleep(20);
+    sem_wait(&empty);
+    sem_wait(&mutex);
+
     sprintf(str, "%d", id);
     strcpy(logbuf[count], str);
+
     count = (count > MAX_BUFFER_SLOT)? count :(count + 1); /* Only increase count to size MAX_BUFFER_SLOT*/
-    printf("wrlog(): %d \n", id);
+    //printf("wrlog(): %d \n", id);
 
     sem_post(&mutex);
-    if(count == MAX_BUFFER_SLOT) { sem_post(&full); }
-    if(seed == MAX_LOOPS) { sem_post(&full); }
 
     return 0;
 }
@@ -52,11 +54,10 @@ void *wrlog(void *data)
 /* flush data from log */
 void flushlog()
 {
-    sem_wait(&full);
-    sem_wait(&mutex);
     int i;
     char nullval[MAX_LOG_LENGTH];
 
+    sem_wait(&mutex);
     //printf("flushlog()\n");
     sprintf(nullval, "%d", -1);
     for (i = 0; i < count; i++)
@@ -116,7 +117,9 @@ int main()
     for (i = 0; i < MAX_LOOPS; i++)
         pthread_join(tid[i], NULL);
 
+    semaphore_destroy();
     sleep(5);
+
     return 0;
 }
 
@@ -134,4 +137,22 @@ void semaphore_init()
         perror("sem empty init");
         exit(1);
     }
+}
+
+void semaphore_destroy()
+{
+  if (sem_destroy(&mutex) == -1) {
+    perror("sem mutex destroy");
+    exit(1);
+  }
+
+  if (sem_destroy(&full) == -1) {
+    perror("sem full destroy");
+    exit(1);
+  }
+
+  if (sem_destroy(&empty) == -1) {
+    perror("sem empty destroy");
+    exit(1);
+  }
 }
