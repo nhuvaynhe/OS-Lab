@@ -1,5 +1,5 @@
 #!/usr/bin/bash
 
 make clean
-make
-./pc_sem
+make 
+./main 100 10 1
