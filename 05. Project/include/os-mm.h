@@ -46,8 +46,10 @@ struct vm_area_struct {
  * Memory management struct
  */
 struct mm_struct {
+   // pabe table directory
    uint32_t *pgd;
 
+   // virtual mem mapping
    struct vm_area_struct *mmap;
 
    /* Currently we support a fixed number of symbol */

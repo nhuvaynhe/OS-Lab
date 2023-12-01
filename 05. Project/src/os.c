@@ -48,6 +48,7 @@ static void * cpu_routine(void * args) {
 	int time_left = 0;
 	struct pcb_t * proc = NULL;
 	while (1) {
+		printf("Hello\n");
 		/* Check the status of current process */
 		if (proc == NULL) {
 			/* No process is running, the we load new process from
@@ -64,14 +65,14 @@ static void * cpu_routine(void * args) {
 			free(proc);
 			proc = get_proc();
 			time_left = 0;
-		}else if (time_left == 0) {
+		}else if  (time_left == 0) {
 			/* The process has done its job in current time slot */
 			printf("\tCPU %d: Put process %2d to run queue\n",
 				id, proc->pid);
 			put_proc(proc);
 			proc = get_proc();
 		}
-		
+
 		/* Recheck process status after loading new process */
 		if (proc == NULL && done) {
 			/* No process to run, exit */
@@ -92,6 +93,7 @@ static void * cpu_routine(void * args) {
 		run(proc);
 		time_left--;
 		next_slot(timer_id);
+
 	}
 	detach_event(timer_id);
 	pthread_exit(NULL);

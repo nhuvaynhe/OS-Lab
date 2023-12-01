@@ -18,8 +18,8 @@ void enqueue(struct queue_t * q, struct pcb_t * proc) {
         }
 
         q->proc[q->size] = proc;
-        //printf("\tINFO: Put process %d into queue %d at pos %d\n", 
-                //proc->pid, proc->prio, q->size);
+        // printf("\tENQUEUE: Put process %d into queue %d at pos %d\n", 
+        //         proc->pid, proc->prio, q->size);
 
         q->size++;
 }

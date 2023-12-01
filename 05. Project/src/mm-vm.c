@@ -399,10 +399,23 @@ struct vm_rg_struct* get_vm_area_node_at_brk(struct pcb_t *caller, int vmaid, in
  */
 int validate_overlap_vm_area(struct pcb_t *caller, int vmaid, int vmastart, int vmaend)
 {
-  //struct vm_area_struct *vma = caller->mm->mmap;
+  /* Get the current virtual memory of caller */
+  struct vm_area_struct *cur_vma = caller->mm->mmap;
 
   /* TODO validate the planned memory area is not overlapped */
 
+  while (cur_vma != NULL) {
+    // Check for overlap
+    if (!(vmaend <= cur_vma->vm_start || vmastart >= cur_vma->vm_end)) {
+      // Overlap detected
+      return -1;
+    }
+
+    // Move to the next VM area
+    cur_vma = cur_vma->vm_next;
+  }
+
+  // No overlap found
   return 0;
 }
 
@@ -447,7 +460,7 @@ int find_victim_page(struct mm_struct *mm, int *retpgn)
   struct pgn_t *pg = mm->fifo_pgn;
 
   /* TODO: Implement the theorical mechanism to find the victim page */
-
+  
   free(pg);
 
   return 0;

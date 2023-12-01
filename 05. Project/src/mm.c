@@ -81,7 +81,7 @@ int pte_set_fpn(uint32_t *pte, int fpn)
  */
 int vmap_page_range(struct pcb_t *caller, // process call
                                 int addr, // start address which is aligned to pagesz
-                               int pgnum, // num of mapping page
+                               int pgnum, // num of mapping pages
            struct framephy_struct *frames,// list of the mapped frames
               struct vm_rg_struct *ret_rg)// return mapped region, the real mapped fp
 {                                         // no guarantee all given pages are mapped
@@ -99,10 +99,21 @@ int vmap_page_range(struct pcb_t *caller, // process call
    *      [addr to addr + pgnum*PAGING_PAGESZ
    *      in page table caller->mm->pgd[]
    */
+  for (pgit = pgn; pgit < pgnum; pgit++) {
+    // assign addr to page table entry
+    pte_set_fpn(&caller->mm->pgd[pgit], addr);
+
+    // Update ret_rg
+    ret_rg->rg_start = addr;
+    ret_rg->rg_end = addr + PAGING_PAGESZ;
+
+    // Increment addr for the next page
+    addr += PAGING_PAGESZ;
+  }
 
    /* Tracking for later page replacement activities (if needed)
     * Enqueue new usage page */
-   enlist_pgn_node(&caller->mm->fifo_pgn, pgn+pgit);
+  enlist_pgn_node(&caller->mm->fifo_pgn, pgn+pgit);
 
 
   return 0;
