@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+#define DEBUG
 /* 
  * init_pte - Initialize PTE entry
  */
@@ -99,17 +100,28 @@ int vmap_page_range(struct pcb_t *caller, // process call
    *      [addr to addr + pgnum*PAGING_PAGESZ
    *      in page table caller->mm->pgd[]
    */
-  for (pgit = pgn; pgit < pgnum; pgit++) {
-    // assign addr to page table entry
-    pte_set_fpn(&caller->mm->pgd[pgit], addr);
+  for (pgit = 0; pgit < pgnum; pgit++) {
+    int pgn_curr = pgit + pgn;
 
-    // Update ret_rg
-    ret_rg->rg_start = addr;
-    ret_rg->rg_end = addr + PAGING_PAGESZ;
+    if (frames == NULL) {
+        printf("\t[INFO TODO] NULL FRAME\n");
+        // Handle the case where there are not enough frames
+        return -1;
+    }
+    printf("\t[INFO TODO] Get frame %d\n", frames->fpn);
+
+    // Assign frame page number to page table entry
+    pte_set_fpn(&caller->mm->pgd[pgn_curr], frames->fpn);
+
+    // Update ret_rg to cover the entire mapped range
+    ret_rg->rg_end = addr + (pgnum * PAGING_PAGESZ);
+
+    // Move to the next frame in the linked list
+    frames = frames->fp_next;
 
     // Increment addr for the next page
     addr += PAGING_PAGESZ;
-  }
+}
 
    /* Tracking for later page replacement activities (if needed)
     * Enqueue new usage page */
@@ -129,16 +141,32 @@ int vmap_page_range(struct pcb_t *caller, // process call
 int alloc_pages_range(struct pcb_t *caller, int req_pgnum, struct framephy_struct** frm_lst)
 {
   int pgit, fpn;
-  //struct framephy_struct *newfp_str;
-
+  struct framephy_struct *newfp_str;
   for(pgit = 0; pgit < req_pgnum; pgit++)
   {
+#ifdef DEBUG
     if(MEMPHY_get_freefp(caller->mram, &fpn) == 0)
-   {
-     
-   } else {  // ERROR CODE of obtaining somes but not enough frames
-   } 
- }
+    {
+      printf("\t[INFO] Get free frames with fpn %d\n", fpn);
+      // Allocate memory for the new framephy_struct
+      newfp_str = (struct framephy_struct *)malloc(sizeof(struct framephy_struct));
+      if (!newfp_str)
+      {
+        // Handle allocation failure
+        return -1;
+      }
+
+      // Initialize the new framephy_struct
+      newfp_str->fpn = fpn;
+
+      // Link the new framephy_struct to the existing list
+      newfp_str->fp_next = *frm_lst;
+      *frm_lst = newfp_str;
+#endif
+    } else {  // ERROR CODE of obtaining somes but not enough frames
+      printf("\t[INFO] Get no frame\n");
+    } 
+  }
 
   return 0;
 }
@@ -165,6 +193,7 @@ int vm_map_ram(struct pcb_t *caller, int astart, int aend, int mapstart, int inc
    *in endless procedure of swap-off to get frame and we have not provide 
    *duplicate control mechanism, keep it simple
    */
+  printf("\t[INFO] Required mapped pages %d\n", incpgnum);
   ret_alloc = alloc_pages_range(caller, incpgnum, &frm_lst);
 
   if (ret_alloc < 0 && ret_alloc != -3000)
