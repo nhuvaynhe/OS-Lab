@@ -192,19 +192,20 @@ int pg_getpage(struct mm_struct *mm, int pgn, int *fpn, struct pcb_t *caller)
     vicfpn = PAGING_FPN(vicpte);
     printf("\t[pg_getpage] get vicfpn %d\n", vicfpn);
 
-
     /* Get free frame in MEMSWP */
     MEMPHY_get_freefp(caller->active_mswp, &swpfpn);
 
     /* Do swap frame from MEMRAM to MEMSWP and vice versa*/
     /* Copy victim frame to swap */
-    // __swap_cp_page(caller->mram, vicfpn, caller->active_mswp, swpfpn +1);
+    __swap_cp_page(caller->mram, vicfpn, caller->mswp[0], swpfpn);
+    printf("\t[pg_getpage] MEMRAM -> MEMSWP\n");
 
     /* Copy target frame from swap to mem */
-    // __swap_cp_page(caller->active_mswp, swpfpn, caller->mram, pte);
+    __swap_cp_page(caller->mswp[0], swpfpn, caller->mram, tgtfpn);
+    printf("\t[pg_getpage] MEMSWP -> MEMRAM\n");
 
     /* Update page table */
-    // pte_set_swap(&mm->pgd[vicpte], 0, 0) ;
+    pte_set_swap(&caller->mm->pgd[vicpgn], swpfpn, 0) ;
 
     /* Update its online status of the target page */
     //pte_set_fpn() & mm->pgd[pgn];
