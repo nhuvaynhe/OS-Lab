@@ -6,6 +6,7 @@
 
 #include "mm.h"
 #include <stdlib.h>
+#include <stdio.h>
 
 /*
  *  MEMPHY_mv_csr - move MEMPHY cursor
@@ -141,11 +142,14 @@ int MEMPHY_get_freefp(struct memphy_struct *mp, int *retfpn)
 {
    struct framephy_struct *fp = mp->free_fp_list;
 
-   if (fp == NULL)
-     return -1;
+   if (fp == NULL){
+      printf("\t[ERROR]: NO FRAME\n");
+      return -1;
+   }
 
    *retfpn = fp->fpn;
    mp->free_fp_list = fp->fp_next;
+   printf("\t[MEMPHY_get_freefp] Get frame %d\n", fp->fpn);
 
    /* MEMPHY is iteratively used up until its exhausted
     * No garbage collector acting then it not been released

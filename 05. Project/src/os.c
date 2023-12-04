@@ -250,7 +250,6 @@ int main(int argc, char * argv[]) {
 	mm_ld_args->active_mswp = (struct memphy_struct *) &mswp[0];
 #endif
 
- 
 	/* Init scheduler */
 	init_scheduler();
 

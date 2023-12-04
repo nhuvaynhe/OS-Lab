@@ -104,11 +104,11 @@ int vmap_page_range(struct pcb_t *caller, // process call
     int pgn_curr = pgit + pgn;
 
     if (frames == NULL) {
-        printf("\t[INFO TODO] NULL FRAME\n");
+        printf("\t[vmap_page_range] NULL FRAME\n");
         // Handle the case where there are not enough frames
         return -1;
     }
-    printf("\t[INFO TODO] Get frame %d\n", frames->fpn);
+    printf("\t[vmap_page_range] Get frame %d\n", frames->fpn);
 
     // Assign frame page number to page table entry
     pte_set_fpn(&caller->mm->pgd[pgn_curr], frames->fpn);
@@ -125,8 +125,8 @@ int vmap_page_range(struct pcb_t *caller, // process call
 
    /* Tracking for later page replacement activities (if needed)
     * Enqueue new usage page */
-  enlist_pgn_node(&caller->mm->fifo_pgn, pgn+pgit);
 
+  enlist_pgn_node(&caller->mm->fifo_pgn, pgn+pgit);
 
   return 0;
 }
@@ -144,15 +144,14 @@ int alloc_pages_range(struct pcb_t *caller, int req_pgnum, struct framephy_struc
   struct framephy_struct *newfp_str;
   for(pgit = 0; pgit < req_pgnum; pgit++)
   {
-#ifdef DEBUG
     if(MEMPHY_get_freefp(caller->mram, &fpn) == 0)
+#ifdef DEBUG
     {
       printf("\t[INFO] Get free frames with fpn %d\n", fpn);
       // Allocate memory for the new framephy_struct
       newfp_str = (struct framephy_struct *)malloc(sizeof(struct framephy_struct));
       if (!newfp_str)
       {
-        // Handle allocation failure
         return -1;
       }
 
