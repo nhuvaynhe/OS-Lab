@@ -82,6 +82,7 @@
 #define PAGING_PGN(x)  GETVAL(x,PAGING_PGN_MASK,PAGING_ADDR_PGN_LOBIT)
 /* Extract FramePHY Number*/
 #define PAGING_FPN(x)  GETVAL(x,PAGING_FPN_MASK,PAGING_ADDR_FPN_LOBIT)
+#define PAGING_GET_FRAME_FROM_PTE(x)  GETVAL(x, PAGING_PTE_FPN_MASK, PAGING_PTE_FPN_LOBIT)
 /* Extract SWAPFPN */
 #define PAGING_PGN(x)  GETVAL(x,PAGING_PGN_MASK,PAGING_ADDR_PGN_LOBIT)
 /* Extract SWAPTYPE */
@@ -136,6 +137,8 @@ int get_free_vmrg_area(struct pcb_t *caller, int vmaid, int size, struct vm_rg_s
 int inc_vma_limit(struct pcb_t *caller, int vmaid, int inc_sz);
 int find_victim_page(struct mm_struct* mm, int *pgn);
 struct vm_area_struct *get_vma_by_num(struct mm_struct *mm, int vmaid);
+
+void init_mmap_lock(void);
 
 /* MEM/PHY protypes */
 int MEMPHY_get_freefp(struct memphy_struct *mp, int *fpn);

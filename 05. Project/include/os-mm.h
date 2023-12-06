@@ -4,6 +4,7 @@
 #define MM_PAGING
 #define PAGING_MAX_MMSWP 4 /* max number of supported swapped space */
 #define PAGING_MAX_SYMTBL_SZ 30
+#define LRU /* least recently used algorithm */
 
 typedef char BYTE;
 typedef uint32_t addr_t;
@@ -48,6 +49,10 @@ struct vm_area_struct {
 struct mm_struct {
    // pabe table directory
    uint32_t *pgd;
+
+   // stored last recent used index of each pgn
+   int *last_idx;
+   int seed; // keep track of the working stage
 
    // virtual mem mapping
    struct vm_area_struct *mmap;

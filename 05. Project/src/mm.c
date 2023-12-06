@@ -9,6 +9,7 @@
 #include <stdio.h>
 
 #define DEBUG
+#define TODO
 /* 
  * init_pte - Initialize PTE entry
  */
@@ -90,7 +91,7 @@ int vmap_page_range(struct pcb_t *caller, // process call
   struct framephy_struct *fpit = malloc(sizeof(struct framephy_struct));
   //int  fpn;
   int pgit = 0;
-  int pgn = PAGING_PGN(addr);
+  int pgn;
 
   ret_rg->rg_end = ret_rg->rg_start = addr; // at least the very first space is usable
 
@@ -101,19 +102,15 @@ int vmap_page_range(struct pcb_t *caller, // process call
    *      in page table caller->mm->pgd[]
    */
   for (pgit = 0; pgit < pgnum; pgit++) {
-    int pgn_curr = pgit + pgn;
-
-    if (frames == NULL) {
-        printf("\t[vmap_page_range] NULL FRAME\n");
-        // Handle the case where there are not enough frames
-        return -1;
-    }
-    printf("\t[vmap_page_range] Get frame %d\n", frames->fpn);
+#ifdef TODO
+    pgn = PAGING_PGN(addr);
 
     // Assign frame page number to page table entry
-    pte_set_fpn(&caller->mm->pgd[pgn_curr], frames->fpn);
+    pte_set_fpn(&caller->mm->pgd[pgn], frames->fpn);
+    printf("\t[vmap_page_range] Proc %d assigned fpn %d to pgn %d at addr %d\n", 
+           caller->pid, frames->fpn, pgn, addr);
 
-    // Update ret_rg to cover the entire mapped range
+    // entire mapped range
     ret_rg->rg_end = addr + (pgnum * PAGING_PAGESZ);
 
     // Move to the next frame in the linked list
@@ -121,11 +118,12 @@ int vmap_page_range(struct pcb_t *caller, // process call
 
     // Increment addr for the next page
     addr += PAGING_PAGESZ;
-}
+#endif
+  }
+
 
    /* Tracking for later page replacement activities (if needed)
     * Enqueue new usage page */
-
   enlist_pgn_node(&caller->mm->fifo_pgn, pgn+pgit);
 
   return 0;
@@ -145,9 +143,9 @@ int alloc_pages_range(struct pcb_t *caller, int req_pgnum, struct framephy_struc
   for(pgit = 0; pgit < req_pgnum; pgit++)
   {
     if(MEMPHY_get_freefp(caller->mram, &fpn) == 0)
-#ifdef DEBUG
     {
-      printf("\t[INFO] Get free frames with fpn %d\n", fpn);
+#ifdef DEBUG
+      printf("\t[alloc_pages_range] Get free frames with fpn %d\n", fpn);
       // Allocate memory for the new framephy_struct
       newfp_str = (struct framephy_struct *)malloc(sizeof(struct framephy_struct));
       if (!newfp_str)
@@ -192,7 +190,7 @@ int vm_map_ram(struct pcb_t *caller, int astart, int aend, int mapstart, int inc
    *in endless procedure of swap-off to get frame and we have not provide 
    *duplicate control mechanism, keep it simple
    */
-  printf("\t[INFO] Required mapped pages %d\n", incpgnum);
+  printf("\t[vm_map_ram] required %d mapped pages\n", incpgnum);
   ret_alloc = alloc_pages_range(caller, incpgnum, &frm_lst);
 
   if (ret_alloc < 0 && ret_alloc != -3000)
@@ -372,7 +370,7 @@ int print_pgtbl(struct pcb_t *caller, uint32_t start, uint32_t end)
 
   printf("print_pgtbl: %d - %d", start, end);
   if (caller == NULL) {printf("NULL caller\n"); return -1;}
-    printf("\n");
+    printf("\n"); 
 
 
   for(pgit = pgn_start; pgit < pgn_end; pgit++)

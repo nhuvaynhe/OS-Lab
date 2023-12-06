@@ -215,7 +215,7 @@ int main(int argc, char * argv[]) {
 	struct cpu_args * args =
 		(struct cpu_args*)malloc(sizeof(struct cpu_args) * num_cpus);
 	pthread_t ld;
-	
+
 	/* Init timer */
 	int i;
 	for (i = 0; i < num_cpus; i++) {
@@ -235,7 +235,8 @@ int main(int argc, char * argv[]) {
 
 	/* Create MEM RAM */
 	init_memphy(&mram, memramsz, rdmflag);
-
+	init_mmap_lock();
+	
         /* Create all MEM SWAP */ 
 	int sit;
 	for(sit = 0; sit < PAGING_MAX_MMSWP; sit++)
