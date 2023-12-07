@@ -48,7 +48,7 @@ static void * cpu_routine(void * args) {
 	int time_left = 0;
 	struct pcb_t * proc = NULL;
 	while (1) {
-		printf("Hello\n");
+		// printf("Hello\n");
 		/* Check the status of current process */
 		if (proc == NULL) {
 			/* No process is running, the we load new process from
