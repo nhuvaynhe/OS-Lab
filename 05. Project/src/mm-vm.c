@@ -185,7 +185,6 @@ int pgfree_data(struct pcb_t *proc, uint32_t reg_index)
  */
 int pg_getpage(struct mm_struct *mm, int pgn, int *fpn, struct pcb_t *caller)
 {
-  printf("\t[pg_getpage] pgn %d\n", pgn);
   mm->seed++;
 
   uint32_t pte = mm->pgd[pgn];
@@ -199,13 +198,16 @@ int pg_getpage(struct mm_struct *mm, int pgn, int *fpn, struct pcb_t *caller)
     int tgtfpn = PAGING_SWP(pte);//the target frame storing our variable
 
     /* TODO: Play with your paging theory here */
-    printf("\t[INFO]: PAGING PAGE NOT PRESENT in proc %d\n", caller->pid);
+    printf("\t[pg_getpage] Page %d not present in proc %d\n",
+            pgn, caller->pid);
+
     /* Find victim page */
     find_victim_page(caller->mm, &vicpgn);  
     vicpte = mm->pgd[vicpgn];
     printf("\t[pg_getpage] get vicpgn %d\n", vicpgn);
+
     /* Get victim frame */
-    vicfpn = PAGING_FPN(vicpte);
+    vicfpn = PAGING_GET_FRAME_FROM_PTE(vicpte);
     printf("\t[pg_getpage] get vicfpn %d\n", vicfpn);
 
     /* Get free frame in MEMSWP */
@@ -229,11 +231,14 @@ int pg_getpage(struct mm_struct *mm, int pgn, int *fpn, struct pcb_t *caller)
     //pte_set_fpn() & mm->pgd[pgn];
     pte_set_fpn(&pte, tgtfpn);
 
-    enlist_pgn_node(&caller->mm->fifo_pgn,pgn);
-  } //else {
-  //   mm->last_idx[pgn] = mm->seed;
-  // }
-  
+    enlist_pgn_node(&caller->mm->fifo_pgn, pgn);
+
+  }
+#ifdef LRU
+  mm->last_idx[pgn] = mm->seed;
+  printf("\t[pg_getpage] pgn %d last_idx %d\n", pgn, mm->last_idx[pgn]);
+#endif
+
   *fpn = PAGING_GET_FRAME_FROM_PTE(pte);
   printf("\t[pg_getpage] return fpn %d\n", *fpn);
 
@@ -491,15 +496,30 @@ int inc_vma_limit(struct pcb_t *caller, int vmaid, int inc_sz)
  */
 int find_victim_page(struct mm_struct *mm, int *retpgn) 
 {
-  //find_victim_page(caller->mm, &vicpgn);
-  struct pgn_t *pg = mm->fifo_pgn; // list of mapped page
-  printf("\t[INFO] Inside find_victim_page\n");
+#ifdef LRU
+  struct pgn_t *current_page = mm->fifo_pgn; // List of mapped pages
 
-  /* TODO: Implement the theorical mechanism to find the victim page */
-  *retpgn = 1;
+  int last_recently_used = __INT_MAX__;
 
+  // Traverse the list of mapped pages to find the victim page
+  while (current_page != NULL) {
+    int last_used_index = mm->last_idx[current_page->pgn];
+    printf("\t[LRU INFO] Page %d with last_used_index %d\n", 
+           current_page->pgn, last_used_index);
 
-  free(pg);
+    // Update the victim page if a less recently used page is found
+    if (last_used_index < last_recently_used) {
+      last_recently_used = last_used_index;
+      *retpgn = current_page->pgn;
+    }
+
+    current_page = current_page->pg_next;
+  }
+#endif
+
+  free(current_page);
+
+  printf("\t[LRU INFO] Return victim page: %d\n", *retpgn);
 
   return 0;
 }

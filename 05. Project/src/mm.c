@@ -107,6 +107,7 @@ int vmap_page_range(struct pcb_t *caller, // process call
 
     // Assign frame page number to page table entry
     pte_set_fpn(&caller->mm->pgd[pgn], frames->fpn);
+    
     printf("\t[vmap_page_range] Proc %d assigned fpn %d to pgn %d at addr %d\n", 
            caller->pid, frames->fpn, pgn, addr);
 
@@ -118,13 +119,13 @@ int vmap_page_range(struct pcb_t *caller, // process call
 
     // Increment addr for the next page
     addr += PAGING_PAGESZ;
-#endif
-  }
 
 
    /* Tracking for later page replacement activities (if needed)
     * Enqueue new usage page */
-  enlist_pgn_node(&caller->mm->fifo_pgn, pgn+pgit);
+  enlist_pgn_node(&caller->mm->fifo_pgn, pgn);
+#endif
+  }
 
   return 0;
 }
@@ -246,7 +247,9 @@ int init_mm(struct mm_struct *mm, struct pcb_t *caller)
   struct vm_area_struct * vma = malloc(sizeof(struct vm_area_struct));
 
   mm->pgd = malloc(PAGING_MAX_PGN*sizeof(uint32_t));
-
+  mm->last_idx = malloc(PAGING_MAX_PGN*sizeof(uint32_t));
+  mm->seed = 0;
+  
   /* By default the owner comes with at least one vma */
   vma->vm_id = 1;
   vma->vm_start = 0;
