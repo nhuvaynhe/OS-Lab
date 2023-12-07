@@ -23,18 +23,36 @@ void init_mmap_lock(void) {
  */
 int enlist_vm_freerg_list(struct mm_struct *mm, struct vm_rg_struct rg_elmt)
 {
-  struct vm_rg_struct *rg_node = mm->mmap->vm_freerg_list;
-  if (rg_elmt.rg_start >= rg_elmt.rg_end)
+  pthread_mutex_lock(&mmap_lock);
+
+  if (rg_elmt.rg_start >= rg_elmt.rg_end) {
+    printf("\t[enlist_vm_freerg_list] INVALID\n");
+    pthread_mutex_unlock(&mmap_lock);
     return -1;
+  }
 
-  if (rg_node != NULL)
-    rg_elmt.rg_next = rg_node;
+  struct vm_rg_struct *newrg = malloc(sizeof(struct vm_rg_struct));
+  if (newrg == NULL) {
+    printf("\t[enlist_vm_freerg_list] Memory allocation failed\n");
+    pthread_mutex_unlock(&mmap_lock);
+    return -1; // Memory allocation failed
+  }
 
-  /* Enlist the new region */
-  mm->mmap->vm_freerg_list = &rg_elmt;
+  newrg->rg_start = rg_elmt.rg_start;
+  newrg->rg_end = rg_elmt.rg_end;
+  printf("\t[enlist_vm_freerg_list] start %ld, end %ld\n", 
+        rg_elmt.rg_start, rg_elmt.rg_end);
+
+  // Add the new node to the head of the list
+  newrg->rg_next = mm->mmap->vm_freerg_list;
+  mm->mmap->vm_freerg_list = newrg;
+
+  printf("\t[enlist_vm_freerg_list] ENLISTED\n");
+  pthread_mutex_unlock(&mmap_lock);
 
   return 0;
 }
+
 
 /*get_vma_by_num - get vm area by numID
  *@mm: memory region
@@ -95,13 +113,14 @@ int __alloc(struct pcb_t *caller, int vmaid, int rgid, int size, int *alloc_addr
     caller->mm->symrgtbl[rgid].rg_end = rgnode.rg_end;
 
     *alloc_addr = rgnode.rg_start;
+    printf("\t[__alloc] start %ld, end %ld\n", caller->mm->symrgtbl[rgid].rg_start,
+          caller->mm->symrgtbl[rgid].rg_end); 
 
     pthread_mutex_unlock(&mmap_lock);
     return 0;
   }
 
   /* TODO get_free_vmrg_area FAILED handle the region management (Fig.6)*/
-  printf("\t[__alloc] Increase region for %d\n", rgid);
   /*Attempt to increate limit to get space */
   struct vm_area_struct *cur_vma = get_vma_by_num(caller->mm, vmaid);
   int inc_sz = PAGING_PAGE_ALIGNSZ(size);
@@ -120,6 +139,8 @@ int __alloc(struct pcb_t *caller, int vmaid, int rgid, int size, int *alloc_addr
   caller->mm->symrgtbl[rgid].rg_end = old_sbrk + size;
 
   *alloc_addr = old_sbrk;
+  printf("\t[__alloc] start %ld end %ld\n", caller->mm->symrgtbl[rgid].rg_start,
+          caller->mm->symrgtbl[rgid].rg_end);
 
   pthread_mutex_unlock(&mmap_lock);
   return 0;
@@ -143,12 +164,14 @@ int __free(struct pcb_t *caller, int vmaid, int rgid)
     return -1;
 
   /* TODO: Manage the collect freed region to freerg_list */
-  // rgnode.rg_start = caller->mm->symrgtbl[rgid].rg_start;
-  // rgnode.rg_end = caller->mm->symrgtbl[rgid].rg_end;
+  rgnode.rg_start = caller->mm->symrgtbl[rgid].rg_start;
+  rgnode.rg_end = caller->mm->symrgtbl[rgid].rg_end;
+
+  pthread_mutex_unlock(&mmap_lock);
 
   /*enlist the obsoleted memory region */
   enlist_vm_freerg_list(caller->mm, rgnode);
-  pthread_mutex_unlock(&mmap_lock);
+
   return 0;
 }
 
