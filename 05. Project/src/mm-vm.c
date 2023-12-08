@@ -23,32 +23,21 @@ void init_mmap_lock(void) {
  */
 int enlist_vm_freerg_list(struct mm_struct *mm, struct vm_rg_struct rg_elmt)
 {
-  pthread_mutex_lock(&mmap_lock);
-
-  if (rg_elmt.rg_start >= rg_elmt.rg_end) {
-    printf("\t[enlist_vm_freerg_list] INVALID\n");
-    pthread_mutex_unlock(&mmap_lock);
+  if (rg_elmt.rg_start >= rg_elmt.rg_end) 
     return -1;
-  }
 
   struct vm_rg_struct *newrg = malloc(sizeof(struct vm_rg_struct));
-  if (newrg == NULL) {
-    printf("\t[enlist_vm_freerg_list] Memory allocation failed\n");
-    pthread_mutex_unlock(&mmap_lock);
-    return -1; // Memory allocation failed
-  }
+  if (newrg == NULL) 
+    return -1; 
 
   newrg->rg_start = rg_elmt.rg_start;
   newrg->rg_end = rg_elmt.rg_end;
+  newrg->rg_next = rg_elmt.rg_next;
+
+  enlist_vm_rg_node(&mm->mmap->vm_freerg_list, newrg);
+
   printf("\t[enlist_vm_freerg_list] start %ld, end %ld\n", 
-        rg_elmt.rg_start, rg_elmt.rg_end);
-
-  // Add the new node to the head of the list
-  newrg->rg_next = mm->mmap->vm_freerg_list;
-  mm->mmap->vm_freerg_list = newrg;
-
-  printf("\t[enlist_vm_freerg_list] ENLISTED\n");
-  pthread_mutex_unlock(&mmap_lock);
+          rg_elmt.rg_start, rg_elmt.rg_end);
 
   return 0;
 }
@@ -103,6 +92,7 @@ struct vm_rg_struct *get_symrg_byid(struct mm_struct *mm, int rgid)
 int __alloc(struct pcb_t *caller, int vmaid, int rgid, int size, int *alloc_addr)
 {
   pthread_mutex_lock(&mmap_lock);
+
   printf("\t[__alloc] alloc rgid %d\n", rgid);
   /*Allocate at the toproof */
   struct vm_rg_struct rgnode;
@@ -113,7 +103,8 @@ int __alloc(struct pcb_t *caller, int vmaid, int rgid, int size, int *alloc_addr
     caller->mm->symrgtbl[rgid].rg_end = rgnode.rg_end;
 
     *alloc_addr = rgnode.rg_start;
-    printf("\t[__alloc] start %ld, end %ld\n", caller->mm->symrgtbl[rgid].rg_start,
+    printf("\t[__alloc] no increase, start %ld, end %ld\n", 
+          caller->mm->symrgtbl[rgid].rg_start,
           caller->mm->symrgtbl[rgid].rg_end); 
 
     pthread_mutex_unlock(&mmap_lock);
@@ -139,7 +130,8 @@ int __alloc(struct pcb_t *caller, int vmaid, int rgid, int size, int *alloc_addr
   caller->mm->symrgtbl[rgid].rg_end = old_sbrk + size;
 
   *alloc_addr = old_sbrk;
-  printf("\t[__alloc] start %ld end %ld\n", caller->mm->symrgtbl[rgid].rg_start,
+  printf("\t[__alloc] start %ld end %ld\n", 
+          caller->mm->symrgtbl[rgid].rg_start,
           caller->mm->symrgtbl[rgid].rg_end);
 
   pthread_mutex_unlock(&mmap_lock);
@@ -166,12 +158,12 @@ int __free(struct pcb_t *caller, int vmaid, int rgid)
   /* TODO: Manage the collect freed region to freerg_list */
   rgnode.rg_start = caller->mm->symrgtbl[rgid].rg_start;
   rgnode.rg_end = caller->mm->symrgtbl[rgid].rg_end;
-
-  pthread_mutex_unlock(&mmap_lock);
+  rgnode.rg_next = NULL;
 
   /*enlist the obsoleted memory region */
   enlist_vm_freerg_list(caller->mm, rgnode);
 
+  pthread_mutex_unlock(&mmap_lock);
   return 0;
 }
 
@@ -463,13 +455,12 @@ struct vm_rg_struct* get_vm_area_node_at_brk(struct pcb_t *caller, int vmaid, in
 int validate_overlap_vm_area(struct pcb_t *caller, int vmaid, int vmastart, int vmaend)
 {
   /* Get the current virtual memory of caller */
-  struct vm_area_struct *cur_vma = caller->mm->mmap;
+  struct vm_area_struct *cur_vma = get_vma_by_num(caller->mm, vmaid);
 
   /* TODO validate the planned memory area is not overlapped */
   while (cur_vma != NULL) {
     // Check for overlap
-    if (!(vmaend <= cur_vma->vm_start || vmastart >= cur_vma->vm_end)) {
-      // Overlap detected
+    if (!((vmaend <= cur_vma->vm_start ) || (vmastart >= cur_vma->vm_end))) {
       return -1;
     }
 
@@ -477,7 +468,6 @@ int validate_overlap_vm_area(struct pcb_t *caller, int vmaid, int vmastart, int 
     cur_vma = cur_vma->vm_next;
   }
 
-  // No overlap found
   return 0;
 }
 
@@ -504,6 +494,7 @@ int inc_vma_limit(struct pcb_t *caller, int vmaid, int inc_sz)
   /* The obtained vm area (only) 
    * now will be alloc real ram region */
   cur_vma->vm_end += inc_sz;
+  printf("\t[inc_vma_limit] Start mapping\n");
   if (vm_map_ram(caller, area->rg_start, area->rg_end, 
                     old_end, incnumpage , newrg) < 0)
     return -1; /* Map the memory to MEMRAM */
@@ -559,8 +550,9 @@ int get_free_vmrg_area(struct pcb_t *caller, int vmaid, int size, struct vm_rg_s
 
   struct vm_rg_struct *rgit = cur_vma->vm_freerg_list;
 
-  if (rgit == NULL)
+  if (rgit == NULL){  
     return -1;
+  }
 
   /* Probe unintialized newrg */
   newrg->rg_start = newrg->rg_end = -1;
@@ -606,8 +598,10 @@ int get_free_vmrg_area(struct pcb_t *caller, int vmaid, int size, struct vm_rg_s
     }
   }
 
- if(newrg->rg_start == -1) // new region not found
-   return -1;
+ if(newrg->rg_start == -1) {// new region not found
+    printf("\t[get_free_vmrg_area] No free region\n");  
+    return -1;
+  }
 
  return 0;
 }
