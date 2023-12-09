@@ -123,7 +123,10 @@ int __alloc(struct pcb_t *caller, int vmaid, int rgid, int size, int *alloc_addr
   /* TODO INCREASE THE LIMIT
    * inc_vma_limit(caller, vmaid, inc_sz)
    */
-  inc_vma_limit(caller, vmaid, inc_sz);
+  if (inc_vma_limit(caller, vmaid, inc_sz) == -1) {
+    pthread_mutex_unlock(&mmap_lock);
+    return 0;
+  }
 
   /*Successful increase limit */
   caller->mm->symrgtbl[rgid].rg_start = old_sbrk;
@@ -439,7 +442,7 @@ struct vm_rg_struct* get_vm_area_node_at_brk(struct pcb_t *caller, int vmaid, in
 
   newrg = malloc(sizeof(struct vm_rg_struct));
 
-  newrg->rg_start = cur_vma->sbrk;
+  newrg->rg_start = cur_vma->sbrk + alignedsz;
   newrg->rg_end = newrg->rg_start + size;
 
   return newrg;
@@ -459,8 +462,10 @@ int validate_overlap_vm_area(struct pcb_t *caller, int vmaid, int vmastart, int 
 
   /* TODO validate the planned memory area is not overlapped */
   while (cur_vma != NULL) {
+
     // Check for overlap
     if (!((vmaend <= cur_vma->vm_start ) || (vmastart >= cur_vma->vm_end))) {
+      printf("\t[INFO] OVERLAP\n");
       return -1;
     }
 
