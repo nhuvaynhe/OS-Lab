@@ -5,7 +5,6 @@
 #define MAX_PRIO 140
 
 #define MM_PAGING
-#undef SYNCH
 #undef MM_FIXED_MEMSZ
 //#define VMDBG 1
 //#define MMDBG 1
@@ -13,5 +12,8 @@
 #define PAGETBL_DUMP 1
 
 #define LRU /* least recently used algorithm */
+#define LRU_STATUS
+#define SYNCH
+#undef INFO
 
 #endif

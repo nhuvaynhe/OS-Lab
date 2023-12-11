@@ -8,8 +8,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#define DEBUG
-#define TODO
 /* 
  * init_pte - Initialize PTE entry
  */
@@ -102,15 +100,15 @@ int vmap_page_range(struct pcb_t *caller, // process call
    *      in page table caller->mm->pgd[]
    */
   for (pgit = 0; pgit < pgnum; pgit++) {
-#ifdef TODO
     pgn = PAGING_PGN(addr);
 
     // Assign frame page number to page table entry
     pte_set_fpn(&caller->mm->pgd[pgn], frames->fpn);
-    
+  
+#ifdef INFO
     printf("\t[__alloc] Proc %d: Mapping - frame %d -> page %d at addr %d\n", 
            caller->pid, frames->fpn, pgn, addr);
-
+#endif
     // entire mapped range
     ret_rg->rg_end = addr + (pgnum * PAGING_PAGESZ);
 
@@ -124,7 +122,6 @@ int vmap_page_range(struct pcb_t *caller, // process call
    /* Tracking for later page replacement activities (if needed)
     * Enqueue new usage page */
   enlist_pgn_node(&caller->mm->fifo_pgn, pgn);
-#endif
   }
 
   return 0;
@@ -145,21 +142,17 @@ int alloc_pages_range(struct pcb_t *caller, int req_pgnum, struct framephy_struc
   {
     if(MEMPHY_get_freefp(caller->mram, &fpn) == 0)
     {
-#ifdef DEBUG
       // Allocate memory for the new framephy_struct
       newfp_str = (struct framephy_struct *)malloc(sizeof(struct framephy_struct));
       if (!newfp_str)
-      {
         return -1;
-      }
-
+      
       // Initialize the new framephy_struct
       newfp_str->fpn = fpn;
 
       // Link the new framephy_struct to the existing list
       newfp_str->fp_next = *frm_lst;
       *frm_lst = newfp_str;
-#endif
     } else {  // ERROR CODE of obtaining somes but not enough frames
       printf("\t[ERROR] Get no frame\n");
     } 
@@ -190,7 +183,9 @@ int vm_map_ram(struct pcb_t *caller, int astart, int aend, int mapstart, int inc
    *in endless procedure of swap-off to get frame and we have not provide 
    *duplicate control mechanism, keep it simple
    */
+#ifdef INFO
   printf("\t[__alloc] Proc %d: Need %d pages\n", caller->pid, incpgnum);
+#endif
   ret_alloc = alloc_pages_range(caller, incpgnum, &frm_lst);
 
   if (ret_alloc < 0 && ret_alloc != -3000)

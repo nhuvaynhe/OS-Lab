@@ -9,7 +9,10 @@
 #include <stdio.h>
 #include <pthread.h>
 
+#ifdef SYNCH
 pthread_mutex_t memphy_lock;
+#endif
+
 /*
  *  MEMPHY_mv_csr - move MEMPHY cursor
  *  @mp: memphy struct
@@ -37,22 +40,30 @@ int MEMPHY_mv_csr(struct memphy_struct *mp, int offset)
  */
 int MEMPHY_seq_read(struct memphy_struct *mp, int addr, BYTE *value)
 {
+   #ifdef SYNCH
    pthread_mutex_lock(&memphy_lock);
+   #endif
 
    if (mp == NULL){
+      #ifdef SYNCH
       pthread_mutex_unlock(&memphy_lock);
+      #endif
       return -1;
    }
 
    if (!mp->rdmflg){
+      #ifdef SYNCH
       pthread_mutex_unlock(&memphy_lock);
+      #endif
       return -1; /* Not compatible mode for sequential read */
    }
 
    MEMPHY_mv_csr(mp, addr);
    *value = (BYTE) mp->storage[addr];
 
+   #ifdef SYNCH
    pthread_mutex_unlock(&memphy_lock);
+   #endif
 
    return 0;
 }
@@ -84,22 +95,30 @@ int MEMPHY_read(struct memphy_struct * mp, int addr, BYTE *value)
  */
 int MEMPHY_seq_write(struct memphy_struct * mp, int addr, BYTE value)
 {
+   #ifdef SYNCH
    pthread_mutex_lock(&memphy_lock);
+   #endif
 
    if (mp == NULL){
+      #ifdef SYNCH
       pthread_mutex_unlock(&memphy_lock);
+      #endif
       return -1;
    }
 
    if (!mp->rdmflg){
+      #ifdef SYNCH
       pthread_mutex_unlock(&memphy_lock);
+      #endif
       return -1; /* Not compatible mode for sequential read */
    }
    
    MEMPHY_mv_csr(mp, addr);
    mp->storage[addr] = value;
 
+   #ifdef SYNCH
    pthread_mutex_unlock(&memphy_lock);
+   #endif
 
    return 0;
 }
@@ -157,13 +176,17 @@ int MEMPHY_format(struct memphy_struct *mp, int pagesz)
 
 int MEMPHY_get_freefp(struct memphy_struct *mp, int *retfpn)
 {
+   #ifdef SYNCH
    pthread_mutex_lock(&memphy_lock);
+   #endif
 
    struct framephy_struct *fp = mp->free_fp_list;
 
    if (fp == NULL){
       printf("\t[ERROR]: NO FRAME\n");
+      #ifdef SYNCH
       pthread_mutex_unlock(&memphy_lock);
+      #endif
 
       return -1;
    }
@@ -176,25 +199,35 @@ int MEMPHY_get_freefp(struct memphy_struct *mp, int *retfpn)
     */
    free(fp);
 
+   #ifdef SYNCH
    pthread_mutex_unlock(&memphy_lock);
+   #endif
+
    return 0;
 }
 
 int MEMPHY_dump(struct memphy_struct * mp)
 {
+   #ifdef SYNCH
    pthread_mutex_lock(&memphy_lock);
+   #endif
 
-   if (mp == NULL || mp->storage == NULL) {
-      pthread_mutex_unlock(&memphy_lock);
-      return -1;
-   }
+   // if (mp == NULL || mp->storage == NULL) {
+   //    #ifdef SYNCH
+   //    pthread_mutex_unlock(&memphy_lock);
+   //    #endif
+   //    return -1;
+   // }
    
-   for (int i = 0; i < mp->maxsz; i++) {
-      if(mp->storage[i] != 0)
-         printf("[__dump] storage[%d]: %d\n", i, mp->storage[i]);
-   }
+   // for (int i = 0; i < mp->maxsz; i++) {
+   //    if(mp->storage[i] != 0)
+   //       printf("storage[%d]: %d\n", i, mp->storage[i]);
+   // }
 
+   #ifdef SYNCH
    pthread_mutex_unlock(&memphy_lock);
+   #endif
+
    return 0;
 }
 
@@ -222,11 +255,13 @@ int init_memphy(struct memphy_struct *mp, int max_size, int randomflg)
 
    MEMPHY_format(mp,PAGING_PAGESZ);
 
+   #ifdef SYNCH
    pthread_mutex_init(&memphy_lock, NULL);
+   #endif
 
    mp->rdmflg = (randomflg != 0)?1:0;
 
-   if (!mp->rdmflg )   /* Not Ramdom acess device, then it serial device*/
+   if (!mp->rdmflg )   /* Not Random access device, then it's a serial device*/
       mp->cursor = 0;
 
    return 0;
