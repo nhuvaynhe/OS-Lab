@@ -108,7 +108,7 @@ int vmap_page_range(struct pcb_t *caller, // process call
     // Assign frame page number to page table entry
     pte_set_fpn(&caller->mm->pgd[pgn], frames->fpn);
     
-    printf("\t[vmap_page_range] Proc %d assigned fpn %d to pgn %d at addr %d\n", 
+    printf("\t[__alloc] Proc %d: Mapping - frame %d -> page %d at addr %d\n", 
            caller->pid, frames->fpn, pgn, addr);
 
     // entire mapped range
@@ -146,7 +146,6 @@ int alloc_pages_range(struct pcb_t *caller, int req_pgnum, struct framephy_struc
     if(MEMPHY_get_freefp(caller->mram, &fpn) == 0)
     {
 #ifdef DEBUG
-      printf("\t[alloc_pages_range] Get free frames with fpn %d\n", fpn);
       // Allocate memory for the new framephy_struct
       newfp_str = (struct framephy_struct *)malloc(sizeof(struct framephy_struct));
       if (!newfp_str)
@@ -162,7 +161,7 @@ int alloc_pages_range(struct pcb_t *caller, int req_pgnum, struct framephy_struc
       *frm_lst = newfp_str;
 #endif
     } else {  // ERROR CODE of obtaining somes but not enough frames
-      printf("\t[INFO] Get no frame\n");
+      printf("\t[ERROR] Get no frame\n");
     } 
   }
 
@@ -191,7 +190,7 @@ int vm_map_ram(struct pcb_t *caller, int astart, int aend, int mapstart, int inc
    *in endless procedure of swap-off to get frame and we have not provide 
    *duplicate control mechanism, keep it simple
    */
-  printf("\t[vm_map_ram] required %d mapped pages\n", incpgnum);
+  printf("\t[__alloc] Proc %d: Need %d pages\n", caller->pid, incpgnum);
   ret_alloc = alloc_pages_range(caller, incpgnum, &frm_lst);
 
   if (ret_alloc < 0 && ret_alloc != -3000)

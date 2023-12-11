@@ -7,7 +7,9 @@
 #include "mm.h"
 #include <stdlib.h>
 #include <stdio.h>
+#include <pthread.h>
 
+pthread_mutex_t memphy_lock;
 /*
  *  MEMPHY_mv_csr - move MEMPHY cursor
  *  @mp: memphy struct
@@ -35,14 +37,22 @@ int MEMPHY_mv_csr(struct memphy_struct *mp, int offset)
  */
 int MEMPHY_seq_read(struct memphy_struct *mp, int addr, BYTE *value)
 {
-   if (mp == NULL)
-     return -1;
+   pthread_mutex_lock(&memphy_lock);
 
-   if (!mp->rdmflg)
-     return -1; /* Not compatible mode for sequential read */
+   if (mp == NULL){
+      pthread_mutex_unlock(&memphy_lock);
+      return -1;
+   }
+
+   if (!mp->rdmflg){
+      pthread_mutex_unlock(&memphy_lock);
+      return -1; /* Not compatible mode for sequential read */
+   }
 
    MEMPHY_mv_csr(mp, addr);
    *value = (BYTE) mp->storage[addr];
+
+   pthread_mutex_unlock(&memphy_lock);
 
    return 0;
 }
@@ -74,15 +84,22 @@ int MEMPHY_read(struct memphy_struct * mp, int addr, BYTE *value)
  */
 int MEMPHY_seq_write(struct memphy_struct * mp, int addr, BYTE value)
 {
+   pthread_mutex_lock(&memphy_lock);
 
-   if (mp == NULL)
-     return -1;
+   if (mp == NULL){
+      pthread_mutex_unlock(&memphy_lock);
+      return -1;
+   }
 
-   if (!mp->rdmflg)
-     return -1; /* Not compatible mode for sequential read */
-
+   if (!mp->rdmflg){
+      pthread_mutex_unlock(&memphy_lock);
+      return -1; /* Not compatible mode for sequential read */
+   }
+   
    MEMPHY_mv_csr(mp, addr);
    mp->storage[addr] = value;
+
+   pthread_mutex_unlock(&memphy_lock);
 
    return 0;
 }
@@ -140,39 +157,45 @@ int MEMPHY_format(struct memphy_struct *mp, int pagesz)
 
 int MEMPHY_get_freefp(struct memphy_struct *mp, int *retfpn)
 {
+   pthread_mutex_lock(&memphy_lock);
+
    struct framephy_struct *fp = mp->free_fp_list;
 
    if (fp == NULL){
       printf("\t[ERROR]: NO FRAME\n");
+      pthread_mutex_unlock(&memphy_lock);
+
       return -1;
    }
 
    *retfpn = fp->fpn;
    mp->free_fp_list = fp->fp_next;
-   printf("\t[MEMPHY_get_freefp] Get frame %d\n", fp->fpn);
 
    /* MEMPHY is iteratively used up until its exhausted
     * No garbage collector acting then it not been released
     */
    free(fp);
 
+   pthread_mutex_unlock(&memphy_lock);
    return 0;
 }
 
 int MEMPHY_dump(struct memphy_struct * mp)
 {
-    if (mp == NULL || mp->storage == NULL) {
-        return -1;
-    }
+   pthread_mutex_lock(&memphy_lock);
 
-    printf("MEMPHY Storage Dump:\n");
-
-    for (int i = 0; i < mp->maxsz; i++) {
+   if (mp == NULL || mp->storage == NULL) {
+      pthread_mutex_unlock(&memphy_lock);
+      return -1;
+   }
+   
+   for (int i = 0; i < mp->maxsz; i++) {
       if(mp->storage[i] != 0)
-         printf("storage[%d]: %d\n", i, mp->storage[i]);
-    }
+         printf("[__dump] storage[%d]: %d\n", i, mp->storage[i]);
+   }
 
-    return 0;
+   pthread_mutex_unlock(&memphy_lock);
+   return 0;
 }
 
 int MEMPHY_put_freefp(struct memphy_struct *mp, int fpn)
@@ -198,6 +221,8 @@ int init_memphy(struct memphy_struct *mp, int max_size, int randomflg)
    mp->maxsz = max_size;
 
    MEMPHY_format(mp,PAGING_PAGESZ);
+
+   pthread_mutex_init(&memphy_lock, NULL);
 
    mp->rdmflg = (randomflg != 0)?1:0;
 
