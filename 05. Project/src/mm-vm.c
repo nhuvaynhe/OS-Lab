@@ -126,6 +126,10 @@ int __alloc(struct pcb_t *caller, int vmaid, int rgid, int size, int *alloc_addr
   /* TODO INCREASE THE LIMIT
    * inc_vma_limit(caller, vmaid, inc_sz)
    */
+#ifdef INFO
+  printf("\t[__alloc] Proc %d: rgid %d - Increase the limit\n", caller->pid, rgid);
+#endif
+  
   if (inc_vma_limit(caller, vmaid, inc_sz) == -1) {
 #ifdef SYNCH
     pthread_mutex_unlock(&mmap_lock);
@@ -254,7 +258,6 @@ int pg_getpage(struct mm_struct *mm, int pgn, int *fpn, struct pcb_t *caller)
     /* Copy victim frame to swap */
     __swap_cp_page(caller->mram, vicfpn, caller->mswp[0], swpfpn);
     
-
     /* Copy target frame from swap to mem */
     __swap_cp_page(caller->mswp[0], swpfpn, caller->mram, tgtfpn);
 
@@ -441,7 +444,6 @@ int free_pcb_memph(struct pcb_t *caller)
   int pagenum, fpn;
   uint32_t pte;
 
-
   for(pagenum = 0; pagenum < PAGING_MAX_PGN; pagenum++)
   {
     pte= caller->mm->pgd[pagenum];
@@ -498,7 +500,10 @@ int validate_overlap_vm_area(struct pcb_t *caller, int vmaid, int vmastart, int 
     // Check for overlap
     if (!((vmaend <= cur_vma->vm_start ) || (vmastart >= cur_vma->vm_end))) {
 #ifdef INFO
-      printf("\t[__alloc] Proc %d: OVERLAP!!!\n", caller->pid);
+      printf("\t[__alloc] Proc %d: OVERLAP!!!\n \
+              current VMA: [%lu, %lu) \n \
+              VMA being inserted: [%d, %d)\n", 
+              caller->pid, cur_vma->vm_start, cur_vma->vm_end, vmastart, vmaend);
 #endif
       return -1;
     }
@@ -506,6 +511,12 @@ int validate_overlap_vm_area(struct pcb_t *caller, int vmaid, int vmastart, int 
     // Move to the next VM area
     cur_vma = cur_vma->vm_next;
   }
+
+#ifdef INFO
+      printf("\t[__alloc] Proc %d: Not overlap\n \
+              VMA being inserted: [%d, %d)\n", 
+              caller->pid, vmastart, vmaend);
+#endif
 
   return 0;
 }

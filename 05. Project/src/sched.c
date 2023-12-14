@@ -1,4 +1,3 @@
-
 #include "queue.h"
 #include "sched.h"
 #include <pthread.h>
@@ -27,8 +26,10 @@ void init_scheduler(void) {
 #ifdef MLQ_SCHED
     int i ;
 
-	for (i = 0; i < MAX_PRIO; i ++)
+	for (i = 0; i < MAX_PRIO; i++) {
 		mlq_ready_queue[i].size = 0;
+        mlq_ready_queue[i].curr_slot = MAX_PRIO - i;
+	}
 #endif
 	ready_queue.size = 0;
 	run_queue.size = 0;
@@ -42,20 +43,67 @@ void init_scheduler(void) {
  *  We implement stateful here using transition technique
  *  State representation   prio = 0 .. MAX_PRIO, curr_slot = 0..(MAX_PRIO - prio)
  */
+int decrease_mlq_slot(struct pcb_t * proc) {
+	int prio = proc->prio;
+	mlq_ready_queue[prio].curr_slot--;
+
+	if(mlq_ready_queue[prio].curr_slot == 0)
+		return -1;
+
+	return 0;
+}
+
 struct pcb_t * get_mlq_proc(void) {
 	/*TODO: get a process from PRIORITY [ready_queue].
 	 * Remember to use lock to protect the queue.
 	 * */
+#ifdef SYNCH
 	pthread_mutex_lock(&queue_lock);
+#endif
 	struct pcb_t * proc = NULL;
+	int processFound = 0;
+	int noProcess = 1;
 
-	for (int i = 0; i < MAX_PRIO ; i++) {
-		proc = dequeue(&mlq_ready_queue[i]);
-		if (proc != NULL) {
-			break;
+	while (!processFound) {
+		for (int prio = 0; prio < MAX_PRIO; prio++) {
+			if (mlq_ready_queue[prio].size > 0) {
+				// If queue size > 0 -> Has process in queue
+				noProcess = 0;
+				if (mlq_ready_queue[prio].curr_slot > 0)  
+				{
+					proc = dequeue(&mlq_ready_queue[prio]);
+					if (proc != NULL) {
+						processFound = 1;
+						break;
+					}
+				}
+			}
 		}
+
+		if (noProcess) {
+			pthread_mutex_unlock(&queue_lock);
+			return NULL;
+		}
+		
+		/* Handle the case when all process has no 
+		 * CPU slot but still not complete its task.
+		 * Just restart the CPU slot 
+		 * */
+		if (proc == NULL) {
+			for (int prio = 0; prio < MAX_PRIO; prio++) {
+				// Check if the queue is not empty
+				if (mlq_ready_queue[prio].size > 0)
+					mlq_ready_queue[prio].curr_slot = MAX_PRIO - prio;
+			}
+
+			printf("TAIL WHILE\n");
+		}
+
 	}
+
+#ifdef SYNCH 
 	pthread_mutex_unlock(&queue_lock);
+#endif
 
 	return proc;
 }

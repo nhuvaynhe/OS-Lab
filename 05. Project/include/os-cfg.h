@@ -14,6 +14,6 @@
 #define LRU /* least recently used algorithm */
 #define LRU_STATUS
 #define SYNCH
-#undef INFO
+#define INFO
 
 #endif

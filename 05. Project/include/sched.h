@@ -12,6 +12,9 @@
 int queue_empty(void);
 
 void init_scheduler(void);
+
+int decrease_mlq_slot(struct pcb_t * proc);
+
 void finish_scheduler(void);
 
 /* Get the next process from ready queue */

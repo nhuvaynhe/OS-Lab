@@ -44,6 +44,7 @@ struct cpu_args {
 static void * cpu_routine(void * args) {
 	struct timer_id_t * timer_id = ((struct cpu_args*)args)->timer_id;
 	int id = ((struct cpu_args*)args)->id;
+	int end_cpu_slot = 0;	// For the scheduler
 	/* Check for new process in ready queue */
 	int time_left = 0;
 	struct pcb_t * proc = NULL;
@@ -65,12 +66,15 @@ static void * cpu_routine(void * args) {
 			free(proc);
 			proc = get_proc();
 			time_left = 0;
-		}else if  (time_left == 0) {
+		}else if  (time_left == 0 || end_cpu_slot == 1) {
 			/* The process has done its job in current time slot */
 			printf("\tCPU %d: Put process %2d to run queue\n",
 				id, proc->pid);
 			put_proc(proc);
 			proc = get_proc();
+			
+			end_cpu_slot = 0;
+			time_left = 0;
 		}
 
 		/* Recheck process status after loading new process */
@@ -92,6 +96,11 @@ static void * cpu_routine(void * args) {
 		/* Run current process */
 		run(proc);
 		time_left--;
+
+		if (decrease_mlq_slot(proc) < 0) {
+			// Queue has no time slot left
+			end_cpu_slot = 1;
+		}
 		next_slot(timer_id);
 
 	}
