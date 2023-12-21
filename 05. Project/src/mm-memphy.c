@@ -212,17 +212,17 @@ int MEMPHY_dump(struct memphy_struct * mp)
    pthread_mutex_lock(&memphy_lock);
    #endif
 
-   // if (mp == NULL || mp->storage == NULL) {
-   //    #ifdef SYNCH
-   //    pthread_mutex_unlock(&memphy_lock);
-   //    #endif
-   //    return -1;
-   // }
+   if (mp == NULL || mp->storage == NULL) {
+      #ifdef SYNCH
+      pthread_mutex_unlock(&memphy_lock);
+      #endif
+      return -1;
+   }
    
-   // for (int i = 0; i < mp->maxsz; i++) {
-   //    if(mp->storage[i] != 0)
-   //       printf("storage[%d]: %d\n", i, mp->storage[i]);
-   // }
+   for (int i = 0; i < mp->maxsz; i++) {
+      if(mp->storage[i] != 0)
+         printf("storage[%d]: %d\n", i, mp->storage[i]);
+   }
 
    #ifdef SYNCH
    pthread_mutex_unlock(&memphy_lock);

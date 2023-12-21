@@ -95,8 +95,6 @@ struct pcb_t * get_mlq_proc(void) {
 				if (mlq_ready_queue[prio].size > 0)
 					mlq_ready_queue[prio].curr_slot = MAX_PRIO - prio;
 			}
-
-			printf("TAIL WHILE\n");
 		}
 
 	}
