@@ -12,7 +12,6 @@
 #include <pthread.h>
 
 pthread_mutex_t mmap_lock;
-
 void init_mmap_lock(void) {
 	pthread_mutex_init(&mmap_lock, NULL);
 }
@@ -372,15 +371,13 @@ int __read(struct pcb_t *caller, int vmaid, int rgid, int offset, BYTE *data)
 }
 
 
-/*pgread - PAGING-based read a region memory */
+/*pgwrite - PAGING-based read a region memory */
 int pgread(
 		struct pcb_t * proc, // Process executing the instruction
 		uint32_t source, // Index of source register
 		uint32_t offset, // Source address = [source] + [offset]
 		uint32_t destination) 
 {
-  pthread_mutex_lock(&mmap_lock);
-
   BYTE data;
   int val = __read(proc, 0, source, offset, &data);
 
@@ -393,7 +390,6 @@ int pgread(
   MEMPHY_dump(proc->mram);
 #endif
 
-  pthread_mutex_unlock(&mmap_lock);
   return val;
 }
 
@@ -407,19 +403,14 @@ int pgread(
  */
 int __write(struct pcb_t *caller, int vmaid, int rgid, int offset, BYTE value)
 {
-  pthread_mutex_lock(&mmap_lock);
-
   struct vm_rg_struct *currg = get_symrg_byid(caller->mm, rgid);
 
   struct vm_area_struct *cur_vma = get_vma_by_num(caller->mm, vmaid);
   
-  if(currg == NULL || cur_vma == NULL) { /* Invalid memory identify */
-    pthread_mutex_unlock(&mmap_lock);
+  if(currg == NULL || cur_vma == NULL) /* Invalid memory identify */
 	  return -1;
-  }
-  
+
   pg_setval(caller->mm, currg->rg_start + offset, value, caller);
-  pthread_mutex_unlock(&mmap_lock);
 
   return 0;
 }
@@ -431,8 +422,6 @@ int pgwrite(
 		uint32_t destination, // Index of destination register
 		uint32_t offset)
 {
-  pthread_mutex_lock(&mmap_lock);
-
 #ifdef IODUMP
   printf("write region=%d offset=%d value=%d\n", destination, offset, data);
 #ifdef PAGETBL_DUMP
@@ -441,7 +430,6 @@ int pgwrite(
   MEMPHY_dump(proc->mram);
 #endif
 
-  pthread_mutex_unlock(&mmap_lock);
   return __write(proc, 0, destination, offset, data);
 }
 
@@ -505,8 +493,6 @@ int validate_overlap_vm_area(struct pcb_t *caller, int vmaid, int vmastart, int 
 {
   /* Get the current virtual memory of caller */
   struct vm_area_struct *cur_vma = get_vma_by_num(caller->mm, vmaid);
-
-  printf("\t\t[__alloc] Proc %d: %d %d \n", caller->pid, vmastart, vmaend);
 
   /* TODO validate the planned memory area is not overlapped */
   while (cur_vma != NULL) {

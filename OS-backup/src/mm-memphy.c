@@ -64,6 +64,7 @@ int MEMPHY_seq_read(struct memphy_struct *mp, int addr, BYTE *value)
    #ifdef SYNCH
    pthread_mutex_unlock(&memphy_lock);
    #endif
+
    return 0;
 }
 
@@ -75,29 +76,14 @@ int MEMPHY_seq_read(struct memphy_struct *mp, int addr, BYTE *value)
  */
 int MEMPHY_read(struct memphy_struct * mp, int addr, BYTE *value)
 {
-   #ifdef SYNCH
-   pthread_mutex_lock(&memphy_lock);
-   #endif
-
-   if (mp == NULL) {
-      #ifdef SYNCH
-      pthread_mutex_unlock(&memphy_lock);
-      #endif
-      return -1;
-   }
+   if (mp == NULL)
+     return -1;
 
    if (mp->rdmflg)
       *value = mp->storage[addr];
-   else {/* Sequential access device */ 
-      #ifdef SYNCH
-      pthread_mutex_unlock(&memphy_lock);
-      #endif
+   else /* Sequential access device */
       return MEMPHY_seq_read(mp, addr, value);
-   }
 
-   #ifdef SYNCH
-   pthread_mutex_unlock(&memphy_lock);
-   #endif
    return 0;
 }
 
@@ -133,6 +119,7 @@ int MEMPHY_seq_write(struct memphy_struct * mp, int addr, BYTE value)
    #ifdef SYNCH
    pthread_mutex_unlock(&memphy_lock);
    #endif
+
    return 0;
 }
 
@@ -144,29 +131,14 @@ int MEMPHY_seq_write(struct memphy_struct * mp, int addr, BYTE value)
  */
 int MEMPHY_write(struct memphy_struct * mp, int addr, BYTE data)
 {
-   #ifdef SYNCH
-   pthread_mutex_lock(&memphy_lock);
-   #endif
-
-   if (mp == NULL) {
-      #ifdef SYNCH
-      pthread_mutex_unlock(&memphy_lock);
-      #endif
+   if (mp == NULL)
      return -1;
-   }
 
    if (mp->rdmflg)
       mp->storage[addr] = data;
-   else /* Sequential access device */ {
-      #ifdef SYNCH
-      pthread_mutex_unlock(&memphy_lock);
-      #endif
+   else /* Sequential access device */
       return MEMPHY_seq_write(mp, addr, data);
-   }
 
-   #ifdef SYNCH
-   pthread_mutex_unlock(&memphy_lock);
-   #endif
    return 0;
 }
 
@@ -230,6 +202,7 @@ int MEMPHY_get_freefp(struct memphy_struct *mp, int *retfpn)
    #ifdef SYNCH
    pthread_mutex_unlock(&memphy_lock);
    #endif
+
    return 0;
 }
 
@@ -254,15 +227,12 @@ int MEMPHY_dump(struct memphy_struct * mp)
    #ifdef SYNCH
    pthread_mutex_unlock(&memphy_lock);
    #endif
+
    return 0;
 }
 
 int MEMPHY_put_freefp(struct memphy_struct *mp, int fpn)
 {
-   #ifdef SYNCH
-   pthread_mutex_lock(&memphy_lock);
-   #endif
-
    struct framephy_struct *fp = mp->free_fp_list;
    struct framephy_struct *newnode = malloc(sizeof(struct framephy_struct));
 
@@ -271,9 +241,6 @@ int MEMPHY_put_freefp(struct memphy_struct *mp, int fpn)
    newnode->fp_next = fp;
    mp->free_fp_list = newnode;
 
-   #ifdef SYNCH
-   pthread_mutex_unlock(&memphy_lock);
-   #endif
    return 0;
 }
 

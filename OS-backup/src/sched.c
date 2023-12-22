@@ -44,17 +44,12 @@ void init_scheduler(void) {
  *  State representation   prio = 0 .. MAX_PRIO, curr_slot = 0..(MAX_PRIO - prio)
  */
 int decrease_mlq_slot(struct pcb_t * proc) {
-	pthread_mutex_lock(&queue_lock);
-
 	int prio = proc->prio;
 	mlq_ready_queue[prio].curr_slot--;
 
-	if(mlq_ready_queue[prio].curr_slot == 0) {
-		pthread_mutex_unlock(&queue_lock);
+	if(mlq_ready_queue[prio].curr_slot == 0)
 		return -1;
-	}
 
-	pthread_mutex_unlock(&queue_lock);
 	return 0;
 }
 
